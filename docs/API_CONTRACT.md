@@ -22,6 +22,7 @@
   user context server-side.
 - **Pagination:** list endpoints (`GET /theses`, `GET /evaluations`) accept `?limit=` and
   `?offset=` query params and return a **paginated envelope** rather than a bare array:
+
   ```json
   {
     "data": [
@@ -51,19 +52,19 @@ Consumed by [ThesisCard.jsx](../src/components/ThesisCard.jsx),
 [ThesisDetail.jsx](../src/pages/ThesisDetail.jsx),
 [Dashboard.jsx](../src/pages/Dashboard.jsx).
 
-| field             | type               | notes                                                                                                       |
-| ----------------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `id`              | integer            |                                                                                                             |
-| `ticker`          | string             | e.g. `"NVDA"`                                                                                               |
-| `name`            | string             | e.g. `"NVIDIA Corporation"`                                                                                 |
-| `sector`          | string             | e.g. `"Semiconductors"`                                                                                     |
-| `signal`          | boolean            | true when all conditions met                                                                                |
-| `status`          | enum               | `"watching"` \| `"signal"` \| `"paused"` (see [StatusIndicator.jsx](../src/components/StatusIndicator.jsx)) |
-| `lastEvaluated`   | ISO 8601 string    | last sweep time                                                                                             |
-| `notes`           | string             | free text, may be `""`                                                                                      |
-| `quantConditions` | `QuantCondition[]` |                                                                                                             |
-| `catalysts`       | `Catalyst[]`       |                                                                                                             |
-| `evaluations`     | `Evaluation[]`     | newest first; returned in full by both list and detail endpoints                                            |
+| field             | type               | notes                                                                                                                           |
+| ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | integer            |                                                                                                                                 |
+| `ticker`          | string             | e.g. `"NVDA"`                                                                                                                   |
+| `name`            | string             | e.g. `"NVIDIA Corporation"`                                                                                                     |
+| `sector`          | string             | e.g. `"Semiconductors"`                                                                                                         |
+| `signal`          | boolean            | true when all conditions met                                                                                                    |
+| `status`          | enum               | `"watching"` \| `"signal"` \| `"paused"` (see [StatusIndicator.jsx](../src/components/StatusIndicator.jsx))                     |
+| `lastEvaluated`   | ISO 8601 string    | last sweep time                                                                                                                 |
+| `notes`           | string             | free text, may be `""`                                                                                                          |
+| `quantConditions` | `QuantCondition[]` |                                                                                                                                 |
+| `catalysts`       | `Catalyst[]`       |                                                                                                                                 |
+| `evaluations`     | `Evaluation[]`     | newest first. **List** (`GET /theses`) returns only the 3 most recent; **detail** (`GET /theses/{id}`) returns the full history |
 
 ### `QuantCondition`
 
@@ -142,11 +143,13 @@ All paths as defined in [client.js](../src/api/client.js).
 
 ### `GET /theses`
 
-List all theses for the user. Returns the dashboard grid + counts. Each thesis is the **full**
-`Thesis` object (same shape as the detail endpoint, `evaluations` included).
+List all theses for the user. Returns the dashboard grid + counts. Each thesis is the full
+`Thesis` object **except** that `evaluations` is capped to the **3 most recent** entries (newest
+first) — enough to drive the dashboard without shipping unbounded history. Use `GET /theses/{id}`
+for a thesis's complete evaluation history.
 
 - **Query (optional):** `limit`, `offset` (see [Pagination](#conventions)).
-- **Response `200`:** paginated envelope of full `Thesis` objects.
+- **Response `200`:** paginated envelope of `Thesis` objects (each with ≤3 `evaluations`).
 
 ```json
 {
@@ -179,7 +182,7 @@ List all theses for the user. Returns the dashboard grid + counts. Each thesis i
         }
       ],
       "evaluations": [
-        /* Evaluation[], newest first */
+        /* up to 3 most recent Evaluation objects, newest first */
       ]
     }
   ],
@@ -417,6 +420,37 @@ is for humans/logs. Use a consistent body:
 `unknown_ticker`, `unauthorized`, `forbidden`, `internal_error`.
 
 ---
+
+## Implementation notes (FastAPI)
+
+If the backend is built with FastAPI, it auto-generates docs from the endpoint type hints:
+
+- **`GET /openapi.json`** — the machine-readable OpenAPI (Swagger) spec: every REST endpoint, its
+  method/path, and request/response schemas, generated from the code so it never drifts from what
+  actually runs. This is the implementation-side counterpart to this hand-written contract: this
+  doc is what we **design toward**; `/openapi.json` describes what was **built**. Diff them to
+  catch drift.
+- **`GET /docs`** — interactive Swagger UI rendering of that spec, with a "Try it out" button that
+  fires real requests at the running server. Handy for exploring/testing endpoints without curl.
+
+Caveats:
+
+- OpenAPI covers **HTTP only** — it does **not** document the WebSocket events (`alert`,
+  `thesis_updated`, …). The [WebSocket](#websocket) section of this doc stays the source of truth
+  for those.
+- Auto-generated schemas reflect the code's response _models_, not response-shaping done in
+  handler bodies. The `evaluations` cap on `GET /theses` (3 most recent) must be enforced in code
+  and won't necessarily show up in the schema — keep it documented here.
+
+## Resolved decisions
+
+- **`operator` set:** `<`, `>`, `<=`, `>=`, `==`.
+- **List payload:** `GET /theses` returns full `Thesis` objects, but `evaluations` is capped to
+  the **3 most recent** per thesis. `GET /theses/{id}` returns the complete evaluation history.
+- **Pagination:** `GET /theses` and `GET /evaluations` are paginated via `limit`/`offset` and
+  return a `{ data, total, limit, offset }` envelope. `GET /proposals` stays unpaginated.
+- **Approve/reject return:** `approve` returns `{ proposal, thesis }` (both, one round-trip);
+  `reject` returns the `Proposal` only (no thesis is mutated).
 
 ## Open questions to confirm before locking v1
 
