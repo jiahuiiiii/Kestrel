@@ -1,15 +1,8 @@
-const METRIC_LABELS = {
-  forward_pe:      'Forward P/E',
-  pb_ratio:        'P/B Ratio',
-  ev_ebitda:       'EV/EBITDA',
-  price_vs_ma200:  'Price / 200d MA',
-  ps_ratio:        'P/S Ratio',
-  debt_to_equity:  'Debt / Equity',
-}
+import { metricLabel } from '../constants/metrics'
 
 export default function ConditionBadge({ condition }) {
   const { metric, operator, value, currentValue, met } = condition
-  const label = METRIC_LABELS[metric] ?? metric
+  const label = metricLabel(metric)
 
   return (
     <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${

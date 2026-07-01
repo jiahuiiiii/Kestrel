@@ -1,3 +1,5 @@
+import { metricLabel } from '../constants/metrics'
+
 function ConfidenceBar({ value }) {
   const pct = Math.round(value * 100)
   const color = value >= 0.7 ? 'bg-emerald-400' : value >= 0.4 ? 'bg-amber-400' : 'bg-slate-600'
@@ -69,12 +71,8 @@ export default function AgentReasoningPanel({ evaluation }) {
   )
 }
 
-const METRIC_LABELS = {
-  forward_pe: 'Forward P/E', pb_ratio: 'P/B', ev_ebitda: 'EV/EBITDA', price_vs_ma200: 'Price/200d MA',
-}
-
 function ConditionRow({ result }) {
-  const label = METRIC_LABELS[result.metric] ?? result.metric
+  const label = metricLabel(result.metric)
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-slate-400">

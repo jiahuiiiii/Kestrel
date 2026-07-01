@@ -44,6 +44,36 @@
 
 ---
 
+## Shared enums (single source of truth)
+
+> ⚠️ **These enum sets are shared contract.** Each value below is hardcoded in **three** places:
+> the frontend components (cited), Brandon's Pydantic models, and the database. Adding or renaming
+> a value (e.g. a new `peg_ratio` metric) is a **coordinated change** — frontend + backend + a DB
+> migration must land together. If the backend emits a value the frontend doesn't know, the UI
+> silently falls back (e.g. an unknown `metric` renders as the raw key, an unknown `status`
+> defaults to `watching`) — no error, just a quiet mismatch. **This table is the canonical list;
+> update it in the same PR as any enum change.**
+
+| enum | values | frontend source of truth | fallback on unknown value |
+| --- | --- | --- | --- |
+| **metric** | `forward_pe`, `pb_ratio`, `ev_ebitda`, `price_vs_ma200`, `ps_ratio`, `debt_to_equity` | `METRIC_LABELS` in [src/constants/metrics.js](../src/constants/metrics.js) | renders raw key |
+| **operator** | `<`, `>`, `<=`, `>=`, `==` | rendered verbatim in [ConditionBadge.jsx](../src/components/ConditionBadge.jsx) | rendered as-is |
+| **thesis status** | `watching`, `signal`, `paused` | `CONFIG` in [StatusIndicator.jsx](../src/components/StatusIndicator.jsx) | defaults to `watching` |
+| **proposal type** | `adjust_threshold`, `add_catalyst`, `remove_catalyst` | `TYPE_LABELS` in [Proposals.jsx](../src/pages/Proposals.jsx) | renders raw `type` string |
+| **proposal status** | `pending`, `approved`, `rejected` | status badge in [Proposals.jsx](../src/pages/Proposals.jsx) | treated as non-pending (resolved) |
+| **error code** | `validation_error`, `not_found`, `already_resolved`, `unknown_ticker`, `unauthorized`, `forbidden`, `internal_error` | [Error responses](#error-responses) | — |
+
+Note the two casing rules from [Conventions](#conventions) apply to these values: `metric`,
+`status`, `type`, and `error code` are snake_case identifiers; `operator` is a literal symbol.
+
+**Frontend metric labels:** the display-name map lives in one place —
+[src/constants/metrics.js](../src/constants/metrics.js) (`METRIC_LABELS` / `metricLabel()`) — and
+both [ConditionBadge.jsx](../src/components/ConditionBadge.jsx) and
+[AgentReasoningPanel.jsx](../src/components/AgentReasoningPanel.jsx) import it. Add new metric
+labels there only; keep the key set in sync with the **metric** row above.
+
+---
+
 ## Core object shapes
 
 ### `Thesis`
