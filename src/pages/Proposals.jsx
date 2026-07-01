@@ -9,7 +9,7 @@ const TYPE_LABELS = {
   remove_catalyst:  'Remove catalyst',
 }
 
-function ProposalCard({ proposal, onApprove, onReject }) {
+function ProposalCard({ proposal, justResolved, onApprove, onReject }) {
   const navigate = useNavigate()
   const { ticker, type, status, createdAt, resolvedAt, proposedChange } = proposal
   const ts = new Date(createdAt).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })
@@ -18,7 +18,7 @@ function ProposalCard({ proposal, onApprove, onReject }) {
   return (
     <GlassCard className={`p-5 space-y-4 ${
       isPending ? '' : 'opacity-60'
-    }`}>
+    } ${justResolved ? 'animate-applied' : ''}`}>
       {/* header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
@@ -56,7 +56,7 @@ function ProposalCard({ proposal, onApprove, onReject }) {
 
       {type === 'add_catalyst' && (
         <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-slate-300">
-          "{proposedChange.description}"
+          &ldquo;{proposedChange.description}&rdquo;
         </div>
       )}
 
@@ -82,8 +82,9 @@ function ProposalCard({ proposal, onApprove, onReject }) {
             </button>
           </div>
         ) : (
-          <span className="text-xs text-slate-600">
-            Resolved {resolvedAt ? new Date(resolvedAt).toLocaleString('en-SG', { dateStyle: 'short' }) : '—'}
+          <span className={`text-xs ${status === 'approved' ? 'text-emerald-400/70' : 'text-slate-600'}`}>
+            {status === 'approved' ? '✓ Approved & applied' : '✗ Rejected'}
+            {resolvedAt ? ` · ${new Date(resolvedAt).toLocaleString('en-SG', { dateStyle: 'short' })}` : ''}
           </span>
         )}
       </div>
@@ -93,16 +94,20 @@ function ProposalCard({ proposal, onApprove, onReject }) {
 
 export default function Proposals() {
   const [proposals, setProposals] = useState(PROPOSALS)
+  const [flashId, setFlashId] = useState(null)
 
   const pending  = proposals.filter(p => p.status === 'pending')
   const resolved = proposals.filter(p => p.status !== 'pending')
 
-  const approve = (id) => setProposals(ps =>
-    ps.map(p => p.id === id ? { ...p, status: 'approved', resolvedAt: new Date().toISOString() } : p)
-  )
-  const reject = (id) => setProposals(ps =>
-    ps.map(p => p.id === id ? { ...p, status: 'rejected', resolvedAt: new Date().toISOString() } : p)
-  )
+  const resolve = (id, status) => {
+    setProposals(ps =>
+      ps.map(p => p.id === id ? { ...p, status, resolvedAt: new Date().toISOString() } : p)
+    )
+    setFlashId(id)
+    setTimeout(() => setFlashId(f => (f === id ? null : f)), 1000)
+  }
+  const approve = (id) => resolve(id, 'approved')
+  const reject  = (id) => resolve(id, 'rejected')
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
@@ -120,7 +125,7 @@ export default function Proposals() {
           </h2>
           <div className="space-y-4">
             {pending.map(p => (
-              <ProposalCard key={p.id} proposal={p} onApprove={approve} onReject={reject} />
+              <ProposalCard key={p.id} proposal={p} justResolved={flashId === p.id} onApprove={approve} onReject={reject} />
             ))}
           </div>
         </section>
@@ -138,7 +143,7 @@ export default function Proposals() {
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Resolved</h2>
           <div className="space-y-4">
             {resolved.map(p => (
-              <ProposalCard key={p.id} proposal={p} onApprove={approve} onReject={reject} />
+              <ProposalCard key={p.id} proposal={p} justResolved={flashId === p.id} onApprove={approve} onReject={reject} />
             ))}
           </div>
         </section>

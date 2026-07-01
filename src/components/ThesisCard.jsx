@@ -2,13 +2,14 @@ import { useNavigate } from 'react-router-dom'
 import GlassCard from './GlassCard'
 import StatusIndicator from './StatusIndicator'
 import ConditionBadge from './ConditionBadge'
+import ReadinessMeter from './ReadinessMeter'
+import { readinessFromThesis } from '../lib/readiness'
 
 export default function ThesisCard({ thesis }) {
   const navigate = useNavigate()
   const { id, ticker, name, sector, signal, status, quantConditions, catalysts, lastEvaluated } = thesis
 
-  const metCount = quantConditions.filter(c => c.met).length
-  const triggeredCount = catalysts.filter(c => c.triggered).length
+  const readiness = readinessFromThesis(thesis)
   const ts = new Date(lastEvaluated).toLocaleString('en-SG', { dateStyle: 'short', timeStyle: 'short' })
 
   return (
@@ -57,12 +58,10 @@ export default function ThesisCard({ thesis }) {
         ))}
       </div>
 
-      {/* footer */}
-      <div className="flex items-center justify-between pt-1 border-t border-white/[0.05]">
-        <span className="text-xs text-slate-600">
-          {metCount}/{quantConditions.length} conditions · {triggeredCount}/{catalysts.length} catalysts
-        </span>
-        <span className="text-xs text-slate-600">{ts}</span>
+      {/* readiness + footer */}
+      <div className="pt-2 border-t border-white/[0.05] space-y-2">
+        <ReadinessMeter readiness={readiness} size="sm" />
+        <p className="text-[11px] text-slate-600 text-right">Last swept {ts}</p>
       </div>
     </GlassCard>
   )

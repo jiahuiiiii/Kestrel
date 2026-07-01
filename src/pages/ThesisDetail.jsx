@@ -5,6 +5,7 @@ import GlassCard from '../components/GlassCard'
 import StatusIndicator from '../components/StatusIndicator'
 import ConditionBadge from '../components/ConditionBadge'
 import AgentReasoningPanel from '../components/AgentReasoningPanel'
+import EvaluationTimeline from '../components/EvaluationTimeline'
 
 export default function ThesisDetail() {
   const { id } = useParams()
@@ -12,6 +13,17 @@ export default function ThesisDetail() {
   const thesis = THESES.find(t => t.id === Number(id))
 
   const [activeEvalIdx, setActiveEvalIdx] = useState(0)
+  const [rerunning, setRerunning] = useState(false)
+
+  // Demo affordance: exercise the agent's "evaluating" loading state on demand,
+  // then snap back to the newest evaluation. Mirrors what a live WS sweep will do.
+  const rerun = () => {
+    setRerunning(true)
+    setTimeout(() => {
+      setActiveEvalIdx(0)
+      setRerunning(false)
+    }, 1600)
+  }
 
   if (!thesis) {
     return (
@@ -96,30 +108,34 @@ export default function ThesisDetail() {
         </section>
       </div>
 
-      {/* evaluation history picker */}
+      {/* evaluation history timeline + agent reasoning */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Evaluation history</h2>
-          {evaluations.length > 1 && (
-            <div className="flex gap-1">
-              {evaluations.map((e, i) => (
-                <button
-                  key={e.id}
-                  onClick={() => setActiveEvalIdx(i)}
-                  className={`text-xs px-2 py-1 rounded transition-colors ${
-                    i === activeEvalIdx
-                      ? 'bg-white/10 text-white'
-                      : 'text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  {new Date(e.timestamp).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
-                </button>
-              ))}
-            </div>
-          )}
+          <button
+            onClick={rerun}
+            disabled={rerunning}
+            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {rerunning ? 'Evaluating…' : '↻ Re-run evaluation'}
+          </button>
         </div>
 
-        <AgentReasoningPanel evaluation={activeEval} />
+        <div className="grid lg:grid-cols-[minmax(0,17rem)_1fr] gap-6 items-start">
+          <div className="space-y-2">
+            <p className="text-[11px] text-slate-600 uppercase tracking-widest">
+              {evaluations.length} sweep{evaluations.length === 1 ? '' : 's'}
+            </p>
+            <EvaluationTimeline
+              evaluations={evaluations}
+              thesis={thesis}
+              activeIdx={activeEvalIdx}
+              onSelect={setActiveEvalIdx}
+            />
+          </div>
+
+          <AgentReasoningPanel evaluation={activeEval} thesis={thesis} loading={rerunning} />
+        </div>
       </section>
     </div>
   )

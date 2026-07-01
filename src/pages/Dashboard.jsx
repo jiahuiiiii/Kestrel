@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { THESES } from '../data/mock'
+import { THESES, PROPOSALS } from '../data/mock'
 import ThesisCard from '../components/ThesisCard'
 
 function StatPill({ label, value, icon, accent = false }) {
@@ -25,6 +25,7 @@ export default function Dashboard() {
 
   const signalCount  = theses.filter(t => t.signal).length
   const watchCount   = theses.filter(t => !t.signal).length
+  const pendingCount = PROPOSALS.filter(p => p.status === 'pending').length
 
   // sort: signals first, then alphabetical
   const sorted = [...theses].sort((a, b) => {
@@ -48,8 +49,22 @@ export default function Dashboard() {
         <StatPill label="Active theses"     value={theses.length} icon="◎" />
         <StatPill label="Signals triggered" value={signalCount}    icon="↗" accent={signalCount > 0} />
         <StatPill label="Watching"          value={watchCount}     icon="◔" />
-        <StatPill label="Pending proposals" value={2}              icon="⁝" />
+        <StatPill label="Pending proposals" value={pendingCount}   icon="⁝" />
       </div>
+
+      {/* empty state — no theses yet */}
+      {theses.length === 0 && (
+        <div className="glass px-6 py-16 text-center space-y-3">
+          <div className="w-12 h-12 mx-auto rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-xl text-slate-500">
+            ◎
+          </div>
+          <p className="text-slate-300 font-medium">No theses on your watchlist yet</p>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            Add a thesis — a ticker, a few quant conditions, and the catalysts you&rsquo;re
+            watching for — and the agent starts monitoring it every sweep.
+          </p>
+        </div>
+      )}
 
       {/* thesis grid */}
       {signalCount > 0 && (
@@ -63,14 +78,16 @@ export default function Dashboard() {
         </section>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-xs text-slate-500 uppercase tracking-widest">Watching</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sorted.filter(t => !t.signal).map(t => (
-            <ThesisCard key={t.id} thesis={t} />
-          ))}
-        </div>
-      </section>
+      {watchCount > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xs text-slate-500 uppercase tracking-widest">Watching</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sorted.filter(t => !t.signal).map(t => (
+              <ThesisCard key={t.id} thesis={t} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
