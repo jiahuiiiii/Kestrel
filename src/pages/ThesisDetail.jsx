@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
-import { THESES } from '../data/mock'
+import { useState, useEffect } from 'react'
+import { api } from '../api/client'
+import { adaptThesis, adaptEvaluation, catalystResultsFromThesis } from '../api/adapt'
 import GlassCard from '../components/GlassCard'
 import StatusIndicator from '../components/StatusIndicator'
 import ConditionBadge from '../components/ConditionBadge'
@@ -10,25 +11,58 @@ import EvaluationTimeline from '../components/EvaluationTimeline'
 export default function ThesisDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const thesis = THESES.find(t => t.id === Number(id))
 
+  const [thesis, setThesis] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [activeEvalIdx, setActiveEvalIdx] = useState(0)
-  const [rerunning, setRerunning] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  // Demo affordance: exercise the agent's "evaluating" loading state on demand,
-  // then snap back to the newest evaluation. Mirrors what a live WS sweep will do.
-  const rerun = () => {
-    setRerunning(true)
-    setTimeout(() => {
-      setActiveEvalIdx(0)
-      setRerunning(false)
-    }, 1600)
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await api.theses.remove(id)
+      navigate('/') // back to the watchlist
+    } catch (e) {
+      setError(e?.message || 'Failed to delete thesis')
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
   }
 
-  if (!thesis) {
+  useEffect(() => {
+    let active = true
+    setLoading(true)
+    Promise.all([api.theses.get(id), api.theses.evaluations(id)])
+      .then(([detail, evalPage]) => {
+        if (!active) return
+        const raw = detail?.theses
+        const adapted = adaptThesis(raw)
+        const evaluations = (evalPage?.evaluations ?? []).map(adaptEvaluation)
+        // Newest evaluation is the only one whose per-catalyst evidence we can
+        // reconstruct from current catalyst state — attach it there.
+        if (evaluations.length > 0) {
+          evaluations[0].catalystResults = catalystResultsFromThesis(raw)
+        }
+        adapted.evaluations = evaluations
+        setThesis(adapted)
+        setError('')
+      })
+      .catch((e) => active && setError(e?.message || 'Failed to load thesis'))
+      .finally(() => active && setLoading(false))
+    return () => { active = false }
+  }, [id])
+
+  if (loading) {
+    return <div className="max-w-4xl mx-auto px-6 py-16 text-center text-slate-500">Loading…</div>
+  }
+
+  if (error || !thesis) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-8 text-slate-500 text-center">
-        Thesis not found.
+      <div className="max-w-4xl mx-auto px-6 py-8 text-center space-y-2">
+        <p className="text-slate-400">{error || 'Thesis not found.'}</p>
+        <button onClick={() => navigate(-1)} className="text-sm text-emerald-400 hover:text-emerald-300">← Back</button>
       </div>
     )
   }
@@ -38,15 +72,42 @@ export default function ThesisDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-      {/* back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
-      >
-        ← Back
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
+        >
+          ← Back
+        </button>
 
-      {/* title block */}
+        {confirmDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Remove this thesis?</span>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-xs px-3 py-1.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 hover:bg-rose-500/25 transition-colors disabled:opacity-50"
+            >
+              {deleting ? 'Removing…' : 'Confirm'}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+              className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-500 hover:text-rose-400 hover:border-rose-400/30 transition-colors"
+          >
+            Remove thesis
+          </button>
+        )}
+      </div>
+
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -65,7 +126,6 @@ export default function ThesisDetail() {
         )}
       </div>
 
-      {/* notes */}
       {notes && (
         <GlassCard className="px-4 py-3">
           <p className="text-xs text-slate-600 uppercase tracking-widest mb-1">Thesis notes</p>
@@ -73,12 +133,11 @@ export default function ThesisDetail() {
         </GlassCard>
       )}
 
-      {/* two-col: conditions + catalysts */}
       <div className="grid sm:grid-cols-2 gap-6">
         <section className="space-y-3">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Quant conditions</h2>
           <div className="space-y-2">
-            {quantConditions.map(c => (
+            {quantConditions.map((c) => (
               <ConditionBadge key={c.id} condition={c} />
             ))}
           </div>
@@ -87,7 +146,7 @@ export default function ThesisDetail() {
         <section className="space-y-3">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Catalysts</h2>
           <div className="space-y-2">
-            {catalysts.map(c => (
+            {catalysts.map((c) => (
               <div key={c.id} className={`rounded-lg border px-3 py-2.5 text-sm ${
                 c.triggered
                   ? 'bg-emerald-400/5 border-emerald-400/20 text-emerald-300'
@@ -108,34 +167,32 @@ export default function ThesisDetail() {
         </section>
       </div>
 
-      {/* evaluation history timeline + agent reasoning */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Evaluation history</h2>
-          <button
-            onClick={rerun}
-            disabled={rerunning}
-            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {rerunning ? 'Evaluating…' : '↻ Re-run evaluation'}
-          </button>
         </div>
 
-        <div className="grid lg:grid-cols-[minmax(0,17rem)_1fr] gap-6 items-start">
-          <div className="space-y-2">
-            <p className="text-[11px] text-slate-600 uppercase tracking-widest">
-              {evaluations.length} sweep{evaluations.length === 1 ? '' : 's'}
-            </p>
-            <EvaluationTimeline
-              evaluations={evaluations}
-              thesis={thesis}
-              activeIdx={activeEvalIdx}
-              onSelect={setActiveEvalIdx}
-            />
+        {evaluations.length === 0 ? (
+          <GlassCard className="px-4 py-8 text-center text-sm text-slate-500">
+            No evaluations yet — the agent hasn’t swept this thesis. Run a sweep to populate this.
+          </GlassCard>
+        ) : (
+          <div className="grid lg:grid-cols-[minmax(0,17rem)_1fr] gap-6 items-start">
+            <div className="space-y-2">
+              <p className="text-[11px] text-slate-600 uppercase tracking-widest">
+                {evaluations.length} sweep{evaluations.length === 1 ? '' : 's'}
+              </p>
+              <EvaluationTimeline
+                evaluations={evaluations}
+                thesis={thesis}
+                activeIdx={activeEvalIdx}
+                onSelect={setActiveEvalIdx}
+              />
+            </div>
+
+            <AgentReasoningPanel evaluation={activeEval} thesis={thesis} loading={false} />
           </div>
-
-          <AgentReasoningPanel evaluation={activeEval} thesis={thesis} loading={rerunning} />
-        </div>
+        )}
       </section>
     </div>
   )

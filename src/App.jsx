@@ -1,13 +1,13 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { PROPOSALS } from './data/mock'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { api } from './api/client'
+import { pendingProposalCount } from './api/adapt'
 import NavBar from './components/NavBar'
 import Dashboard from './pages/Dashboard'
 import ThesisDetail from './pages/ThesisDetail'
 import Proposals from './pages/Proposals'
 import Account from './pages/Account'
-
-const pendingCount = PROPOSALS.filter(p => p.status === 'pending').length
 
 function Background() {
   return (
@@ -19,20 +19,41 @@ function Background() {
   )
 }
 
+// Inside AuthProvider so it can read auth + fetch the live proposal count.
+function Shell() {
+  const { user } = useAuth()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    if (!user) { setPendingCount(0); return }
+    let active = true
+    api.proposals.all()
+      .then((data) => active && setPendingCount(pendingProposalCount(data)))
+      .catch(() => active && setPendingCount(0))
+    return () => { active = false }
+  }, [user])
+
+  return (
+    <>
+      <Background />
+      <NavBar pendingCount={pendingCount} />
+      <main className="min-h-screen pb-16">
+        <Routes>
+          <Route path="/"            element={<Dashboard />} />
+          <Route path="/thesis/:id"  element={<ThesisDetail />} />
+          <Route path="/proposals"   element={<Proposals />} />
+          <Route path="/account"     element={<Account />} />
+        </Routes>
+      </main>
+    </>
+  )
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Background />
-        <NavBar pendingCount={pendingCount} />
-        <main className="min-h-screen pb-16">
-          <Routes>
-            <Route path="/"            element={<Dashboard />} />
-            <Route path="/thesis/:id"  element={<ThesisDetail />} />
-            <Route path="/proposals"   element={<Proposals />} />
-            <Route path="/account"     element={<Account />} />
-          </Routes>
-        </main>
+        <Shell />
       </BrowserRouter>
     </AuthProvider>
   )

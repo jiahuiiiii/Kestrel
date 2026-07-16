@@ -15,27 +15,36 @@ function Field({ label, ...props }) {
 }
 
 export default function SignInModal({ open, onClose }) {
-  const { signIn } = useAuth()
+  const { signIn, register } = useAuth()
   const [mode, setMode] = useState('signin') // 'signin' | 'signup'
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     if (!form.email || !form.password || (mode === 'signup' && !form.name)) {
       setError('Please fill in all fields.')
       return
     }
-    // Demo auth — no backend. Derive a display name from email if signing in.
-    const name = mode === 'signup'
-      ? form.name
-      : form.email.split('@')[0].replace(/[._]/g, ' ')
-    signIn({ name, email: form.email })
-    setForm({ name: '', email: '', password: '' })
+    setBusy(true)
     setError('')
-    onClose()
+    try {
+      if (mode === 'signup') {
+        await register(form.email, form.name, form.password)
+      } else {
+        await signIn(form.email, form.password)
+      }
+      setForm({ name: '', email: '', password: '' })
+      onClose()
+    } catch (err) {
+      // Backend returns a generic message for bad credentials / existing email.
+      setError(err?.message || 'Something went wrong. Please try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -56,9 +65,10 @@ export default function SignInModal({ open, onClose }) {
 
         <button
           type="submit"
-          className="w-full py-2.5 rounded-lg bg-emerald-400 text-slate-900 text-sm font-semibold hover:bg-emerald-300 transition-colors"
+          disabled={busy}
+          className="w-full py-2.5 rounded-lg bg-emerald-400 text-slate-900 text-sm font-semibold hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {mode === 'signin' ? 'Sign in' : 'Create account'}
+          {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
         </button>
 
         <p className="text-center text-xs text-slate-500">

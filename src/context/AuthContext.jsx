@@ -1,19 +1,20 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { api, setUnauthenticatedHandler } from '../api/client'
 
 const AuthContext = createContext(null)
 
-const STORAGE_KEY = 'kestrel_user'
+// Notification prefs aren't part of the backend user profile yet, so we keep
+// them client-side (localStorage) layered on top of the real account.
+const NOTIF_KEY = 'kestrel_notifications'
 
-// Demo-grade auth: persisted to localStorage, no backend.
-// Swap signIn/updateNotifications for real API calls when the backend lands.
-const DEFAULT_NOTIFICATIONS = {
-  email:    { enabled: true,  address: '' },
+const defaultNotifications = (email) => ({
+  email: { enabled: true, address: email || '' },
   telegram: { enabled: false, linked: false, handle: '' },
-}
+})
 
-function loadUser() {
+function loadNotifications() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(NOTIF_KEY)
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -21,32 +22,61 @@ function loadUser() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(loadUser)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true) // true while bootstrapping the session
 
-  useEffect(() => {
-    if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
-    else localStorage.removeItem(STORAGE_KEY)
-  }, [user])
-
-  const signIn = useCallback(({ name, email }) => {
-    setUser((prev) => ({
-      name,
-      email,
-      notifications: prev?.notifications ?? {
-        ...DEFAULT_NOTIFICATIONS,
-        email: { enabled: true, address: email },
-      },
-    }))
+  const applyProfile = useCallback((profile) => {
+    if (!profile) {
+      setUser(null)
+      return
+    }
+    setUser({
+      userId: profile.user_id,
+      name: profile.username,
+      email: profile.email,
+      notifications: loadNotifications() || defaultNotifications(profile.email),
+    })
   }, [])
 
-  const signOut = useCallback(() => setUser(null), [])
+  // On load, try to restore the session from the cookie (client auto-refreshes).
+  useEffect(() => {
+    let active = true
+    setUnauthenticatedHandler(() => active && setUser(null))
+    ;(async () => {
+      try {
+        const me = await api.auth.me()
+        if (active) applyProfile(me)
+      } catch {
+        if (active) setUser(null)
+      } finally {
+        if (active) setLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [applyProfile])
+
+  const signIn = useCallback(async (email, password) => {
+    await api.auth.login(email, password)
+    applyProfile(await api.auth.me())
+  }, [applyProfile])
+
+  const register = useCallback(async (email, username, password) => {
+    await api.auth.register(email, username, password)
+    applyProfile(await api.auth.me())
+  }, [applyProfile])
+
+  const signOut = useCallback(async () => {
+    try { await api.auth.logout() } catch { /* clear locally regardless */ }
+    setUser(null)
+  }, [])
 
   const updateNotifications = useCallback((notifications) => {
+    localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications))
     setUser((prev) => (prev ? { ...prev, notifications } : prev))
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, updateNotifications }}>
+    <AuthContext.Provider value={{ user, loading, signIn, register, signOut, updateNotifications }}>
       {children}
     </AuthContext.Provider>
   )

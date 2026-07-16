@@ -10,7 +10,9 @@ export default function ThesisCard({ thesis }) {
   const { id, ticker, name, sector, signal, status, quantConditions, catalysts, lastEvaluated } = thesis
 
   const readiness = readinessFromThesis(thesis)
-  const ts = new Date(lastEvaluated).toLocaleString('en-SG', { dateStyle: 'short', timeStyle: 'short' })
+  const ts = lastEvaluated
+    ? new Date(lastEvaluated).toLocaleString('en-SG', { dateStyle: 'short', timeStyle: 'short' })
+    : null
 
   return (
     <GlassCard
@@ -61,7 +63,7 @@ export default function ThesisCard({ thesis }) {
       {/* readiness + footer */}
       <div className="pt-2 border-t border-white/[0.05] space-y-2">
         <ReadinessMeter readiness={readiness} size="sm" />
-        <p className="text-[11px] text-slate-600 text-right">Last swept {ts}</p>
+        <p className="text-[11px] text-slate-600 text-right">{ts ? `Last swept ${ts}` : 'Not yet swept'}</p>
       </div>
     </GlassCard>
   )
