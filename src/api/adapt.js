@@ -35,6 +35,13 @@ function quantDetailById(evaluation) {
   return byId
 }
 
+// Deleting a condition/catalyst is a SOFT delete: the backend flips `enabled` to
+// false and keeps the row (and its evidence) for the audit trail. The API still
+// returns those rows, so every read path has to drop them here — otherwise a
+// removed condition keeps rendering, and worse, keeps being counted.
+const isEnabled = (row) => row.enabled !== false
+const activeRows = (rows) => (rows || []).filter(isEnabled)
+
 // A backend ThesesResponse -> a dashboard/detail thesis.
 export function adaptThesis(t) {
   const latest = t.latest_evaluation
@@ -51,7 +58,7 @@ export function adaptThesis(t) {
     notes: t.notes || '',
     quantMode: t.quant_mode,
     catalystMode: t.catalyst_mode,
-    quantConditions: (t.quant_conditions || []).map((q) => {
+    quantConditions: activeRows(t.quant_conditions).map((q) => {
       const d = detailById[q.quant_condition_id]
       return {
         id: q.quant_condition_id,
@@ -62,7 +69,7 @@ export function adaptThesis(t) {
         met: d ? d.passes : null,
       }
     }),
-    catalysts: (t.catalysts || []).map((c) => {
+    catalysts: activeRows(t.catalysts).map((c) => {
       const e = newestEvidence(c)
       const triggered = c.state === 'confirmed'
       return {
@@ -80,7 +87,7 @@ export function adaptThesis(t) {
 // The catalysts' newest verdicts as evaluation-style catalystResults, so the
 // reasoning panel shows real confidence + verbatim quotes for the current state.
 export function catalystResultsFromThesis(t) {
-  return (t.catalysts || []).map((c) => {
+  return activeRows(t.catalysts).map((c) => {
     const e = newestEvidence(c)
     return {
       description: c.description || '',
@@ -113,12 +120,15 @@ function adaptProposal(p, kind, idField, statusField) {
     id: p[idField],
     kind, // 'theses' | 'quant' | 'catalyst' — needed for approve/reject routing
     thesisId: p.theses_id || null,
-    ticker: change.ticker || '', // backend proposal rows don't carry the ticker
+    // The proposal row has no ticker column; the generator writes it into
+    // proposed_change so the card stays readable without a join.
+    ticker: change.ticker || '',
     type,
     status: String(p[statusField] || '').toLowerCase(),
-    createdAt: change.created_at || p.resolved_at || null,
+    createdAt: p.created_at || null,
     resolvedAt: p.resolved_at || null,
     rejectionReason: p.rejection_reason || null,
+    sourceArticleUrl: p.source_article_url || null,
     proposedChange: {
       ...change,
       rationale: p.llm_rationale || change.rationale || '',

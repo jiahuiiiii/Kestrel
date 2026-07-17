@@ -80,6 +80,22 @@ export const api = {
     remove: (id) => request(`/theses/${id}`, { method: 'DELETE' }),
     evaluations: (id, page = 1, pageSize = 20) =>
       request(`/theses/${id}/evaluations?page=${page}&page_size=${pageSize}`),
+
+    // Conditions and catalysts are edited row-by-row, not as a whole thesis —
+    // the backend has no bulk-replace endpoint, so EditThesisModal diffs the
+    // form against the loaded thesis and calls these per changed row.
+    // Both deletes are soft (the row survives with enabled=false).
+    addCondition: (id, body) => request(`/theses/${id}/quant-condition`, { method: 'POST', body }),
+    updateCondition: (id, conditionId, body) =>
+      request(`/theses/${id}/quant-condition/${conditionId}`, { method: 'PUT', body }),
+    removeCondition: (id, conditionId) =>
+      request(`/theses/${id}/quant-condition/${conditionId}`, { method: 'DELETE' }),
+
+    addCatalyst: (id, body) => request(`/theses/${id}/catalyst`, { method: 'POST', body }),
+    updateCatalyst: (id, catalystId, body) =>
+      request(`/theses/${id}/catalyst/${catalystId}`, { method: 'PUT', body }),
+    removeCatalyst: (id, catalystId) =>
+      request(`/theses/${id}/catalyst/${catalystId}`, { method: 'DELETE' }),
   },
 
   proposals: {

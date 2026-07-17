@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { adaptThesis, adaptEvaluation, catalystResultsFromThesis } from '../api/adapt'
 import GlassCard from '../components/GlassCard'
@@ -7,6 +7,7 @@ import StatusIndicator from '../components/StatusIndicator'
 import ConditionBadge from '../components/ConditionBadge'
 import AgentReasoningPanel from '../components/AgentReasoningPanel'
 import EvaluationTimeline from '../components/EvaluationTimeline'
+import EditThesisModal from '../components/EditThesisModal'
 
 export default function ThesisDetail() {
   const { id } = useParams()
@@ -18,6 +19,7 @@ export default function ThesisDetail() {
   const [activeEvalIdx, setActiveEvalIdx] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const handleDelete = async () => {
     setDeleting(true)
@@ -31,12 +33,12 @@ export default function ThesisDetail() {
     }
   }
 
-  useEffect(() => {
-    let active = true
-    setLoading(true)
+  // Also the post-save refetch for EditThesisModal — stable per thesis id, so
+  // the mount effect below can depend on it without re-running every render.
+  const load = useCallback(({ active = () => true } = {}) =>
     Promise.all([api.theses.get(id), api.theses.evaluations(id)])
       .then(([detail, evalPage]) => {
-        if (!active) return
+        if (!active()) return
         const raw = detail?.theses
         const adapted = adaptThesis(raw)
         const evaluations = (evalPage?.evaluations ?? []).map(adaptEvaluation)
@@ -49,10 +51,14 @@ export default function ThesisDetail() {
         setThesis(adapted)
         setError('')
       })
-      .catch((e) => active && setError(e?.message || 'Failed to load thesis'))
-      .finally(() => active && setLoading(false))
-    return () => { active = false }
-  }, [id])
+      .catch((e) => active() && setError(e?.message || 'Failed to load thesis')), [id])
+
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    load({ active: () => alive }).finally(() => alive && setLoading(false))
+    return () => { alive = false }
+  }, [id, load])
 
   if (loading) {
     return <div className="max-w-4xl mx-auto px-6 py-16 text-center text-slate-500">Loading…</div>
@@ -99,14 +105,24 @@ export default function ThesisDetail() {
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-500 hover:text-rose-400 hover:border-rose-400/30 transition-colors"
-          >
-            Remove thesis
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+            >
+              Edit thesis
+            </button>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-500 hover:text-rose-400 hover:border-rose-400/30 transition-colors"
+            >
+              Remove thesis
+            </button>
+          </div>
         )}
       </div>
+
+      <EditThesisModal open={editing} onClose={() => setEditing(false)} thesis={thesis} onSaved={load} />
 
       <div className="flex items-start justify-between gap-4">
         <div>

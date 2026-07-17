@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { adaptProposals } from '../api/adapt'
 import { useAuth } from '../context/AuthContext'
 import GlassCard from '../components/GlassCard'
+import { metricLabel } from '../constants/metrics'
 
 const TYPE_LABELS = {
   adjust_threshold: 'Threshold adjustment',
@@ -19,6 +20,82 @@ function fmtDate(v, opts = { dateStyle: 'medium', timeStyle: 'short' }) {
   if (!v) return ''
   const d = new Date(v)
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('en-SG', opts)
+}
+
+const Chip = ({ tone = 'slate', className = '', children }) => (
+  <span className={`tabular ${{
+    rose: 'text-rose-400 line-through',
+    emerald: 'text-emerald-400',
+    slate: 'text-slate-400',
+  }[tone]} ${className}`}>{children}</span>
+)
+
+const Arrow = () => <span className="text-slate-600">→</span>
+
+const condition = (metric, operator, value) =>
+  `${metricLabel(metric)} ${operator} ${value}`
+
+// What the agent wants to change, rendered from proposed_change. The generator
+// writes both the apply keys and a snapshot of the row as it was (`current*`),
+// so a resolved proposal still reads correctly long after the row it describes
+// has moved on — or been deleted.
+function ChangeSummary({ type, change }) {
+  const box = 'bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm'
+  const quote = (text) => `“${text}”`
+
+  switch (type) {
+    case 'adjust_threshold':
+      if (!change.metric) return null
+      return (
+        <div className={`${box} flex items-center gap-3 flex-wrap`}>
+          <span className="text-slate-300 font-medium">{metricLabel(change.metric)}</span>
+          <Chip tone="rose">{change.currentOperator} {change.currentValue}</Chip>
+          <Arrow />
+          <Chip tone="emerald">{change.operator} {change.value}</Chip>
+          {change.liveValue != null && (
+            <span className="text-xs text-slate-600 ml-auto">live: {change.liveValue}</span>
+          )}
+        </div>
+      )
+
+    case 'add_condition':
+      if (!change.metric) return null
+      return <div className={box}><Chip tone="emerald">+ {condition(change.metric, change.operator, change.value)}</Chip></div>
+
+    case 'remove_condition':
+      if (!change.currentMetric) return null
+      return (
+        <div className={`${box} flex items-center gap-3`}>
+          <Chip tone="rose">{condition(change.currentMetric, change.currentOperator, change.currentValue)}</Chip>
+          {change.liveValue != null && (
+            <span className="text-xs text-slate-600 ml-auto">live: {change.liveValue}</span>
+          )}
+        </div>
+      )
+
+    case 'add_catalyst':
+      return change.description
+        ? <div className={`${box} text-emerald-300`}>{quote(change.description)}</div>
+        : null
+
+    case 'update_catalyst':
+      return change.description ? (
+        <div className={`${box} space-y-1.5`}>
+          {change.currentDescription && (
+            <p className="text-slate-500 line-through">{quote(change.currentDescription)}</p>
+          )}
+          <p className="text-emerald-300">{quote(change.description)}</p>
+        </div>
+      ) : null
+
+    case 'remove_catalyst':
+      return change.currentDescription
+        ? <div className={`${box} text-slate-500 line-through`}>{quote(change.currentDescription)}</div>
+        : null
+
+    default:
+      return null
+  }
 }
 
 function ProposalCard({ proposal, justResolved, onApprove, onReject, busy }) {
@@ -53,24 +130,28 @@ function ProposalCard({ proposal, justResolved, onApprove, onReject, busy }) {
         </span>
       </div>
 
-      {type === 'adjust_threshold' && proposedChange.metric && (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm flex items-center gap-3">
-          <span className="text-slate-400 tabular">{String(proposedChange.metric).replace(/_/g, ' ')}</span>
-          <span className="text-slate-600">→</span>
-          <span className="text-rose-400 tabular line-through">&lt; {proposedChange.currentValue}</span>
-          <span className="text-slate-600">→</span>
-          <span className="text-emerald-400 tabular">&lt; {proposedChange.suggestedValue}</span>
-        </div>
-      )}
-
-      {(type === 'add_catalyst' || type === 'add_condition') && proposedChange.description && (
-        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2.5 text-sm text-slate-300">
-          &ldquo;{proposedChange.description}&rdquo;
-        </div>
-      )}
+      <ChangeSummary type={type} change={proposedChange} />
 
       {proposedChange.rationale && (
         <p className="text-sm text-slate-400 leading-relaxed">{proposedChange.rationale}</p>
+      )}
+
+      {(proposedChange.confidence != null || proposal.sourceArticleUrl) && (
+        <div className="flex items-center gap-3 text-xs text-slate-600">
+          {proposedChange.confidence != null && (
+            <span>{Math.round(proposedChange.confidence * 100)}% confident</span>
+          )}
+          {proposal.sourceArticleUrl && (
+            <a href={proposal.sourceArticleUrl} target="_blank" rel="noreferrer"
+              className="text-slate-500 hover:text-emerald-400 transition-colors">
+              Source article ↗
+            </a>
+          )}
+        </div>
+      )}
+
+      {status === 'rejected' && proposal.rejectionReason && (
+        <p className="text-xs text-slate-600 italic">{proposal.rejectionReason}</p>
       )}
 
       <div className="flex items-center justify-between pt-1 border-t border-white/[0.05]">
