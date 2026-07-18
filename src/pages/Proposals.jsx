@@ -211,6 +211,18 @@ export default function Proposals() {
     return () => { active = false }
   }, [user, authLoading])
 
+  // No WebSocket: poll so newly generated proposals appear without a manual
+  // refresh. Silent refetch — no loading flash, transient errors ignored.
+  useEffect(() => {
+    if (authLoading || !user) return
+    const timer = setInterval(() => {
+      api.proposals.all()
+        .then((data) => { setProposals(adaptProposals(data)); setError('') })
+        .catch(() => {})
+    }, 30_000)
+    return () => clearInterval(timer)
+  }, [user, authLoading])
+
   const act = async (proposal, fn) => {
     setBusyId(proposal.id)
     try {

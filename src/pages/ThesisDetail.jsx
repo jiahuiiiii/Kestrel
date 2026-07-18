@@ -60,6 +60,14 @@ export default function ThesisDetail() {
     return () => { alive = false }
   }, [id, load])
 
+  // No WebSocket: poll for retest results (scheduler retests every ~120s in dev).
+  // Silent refetch reuses the stable `load` — no loading flash, and clearInterval
+  // on unmount prevents stacked timers.
+  useEffect(() => {
+    const timer = setInterval(() => load(), 30_000)
+    return () => clearInterval(timer)
+  }, [load])
+
   if (loading) {
     return <div className="max-w-4xl mx-auto px-6 py-16 text-center text-slate-500">Loading…</div>
   }
@@ -163,11 +171,10 @@ export default function ThesisDetail() {
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Catalysts</h2>
           <div className="space-y-2">
             {catalysts.map((c) => (
-              <div key={c.id} className={`rounded-lg border px-3 py-2.5 text-sm ${
-                c.triggered
+              <div key={c.id} className={`rounded-lg border px-3 py-2.5 text-sm ${c.triggered
                   ? 'bg-emerald-400/5 border-emerald-400/20 text-emerald-300'
                   : 'bg-white/[0.03] border-white/[0.06] text-slate-400'
-              }`}>
+                }`}>
                 <div className="flex items-start gap-2">
                   <span className="mt-0.5 flex-shrink-0">{c.triggered ? '✓' : '○'}</span>
                   <span className="leading-snug">{c.description}</span>

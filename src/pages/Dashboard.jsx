@@ -7,12 +7,10 @@ import NewThesisModal from '../components/NewThesisModal'
 
 function StatPill({ label, value, icon, accent = false }) {
   return (
-    <div className={`glass px-4 py-3.5 flex items-center gap-3.5 ${
-      accent ? 'ring-1 ring-emerald-400/25 bg-emerald-400/[0.04]' : ''
-    }`}>
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-base ${
-        accent ? 'bg-emerald-400/15 text-emerald-400' : 'bg-white/[0.05] text-slate-400'
+    <div className={`glass px-4 py-3.5 flex items-center gap-3.5 ${accent ? 'ring-1 ring-emerald-400/25 bg-emerald-400/[0.04]' : ''
       }`}>
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-base ${accent ? 'bg-emerald-400/15 text-emerald-400' : 'bg-white/[0.05] text-slate-400'
+        }`}>
         {icon}
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
@@ -30,16 +28,18 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const [showNew, setShowNew] = useState(false)
 
-  const loadTheses = useCallback(async () => {
-    setLoading(true)
+  const loadTheses = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       const data = await api.theses.list()
       setTheses((data?.theses ?? []).map(adaptThesis))
       setError('')
     } catch (e) {
-      setError(e?.message || 'Failed to load theses')
+      // Swallow transient errors on a silent poll so a network blip doesn't
+      // replace the whole watchlist with the error screen.
+      if (!silent) setError(e?.message || 'Failed to load theses')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [])
 
@@ -47,6 +47,14 @@ export default function Dashboard() {
     if (authLoading) return
     if (!user) { setLoading(false); return }
     loadTheses()
+  }, [user, authLoading, loadTheses])
+
+  // No WebSocket: poll the watchlist so statuses/signals update without a manual
+  // refresh (scheduler retests every ~120s in dev). Silent = no loading flash.
+  useEffect(() => {
+    if (authLoading || !user) return
+    const timer = setInterval(() => loadTheses({ silent: true }), 30_000)
+    return () => clearInterval(timer)
   }, [user, authLoading, loadTheses])
 
   const signalCount = theses.filter((t) => t.signal).length
@@ -116,10 +124,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatPill label="Active theses"     value={theses.length} icon="◎" />
-        <StatPill label="Signals triggered" value={signalCount}    icon="↗" accent={signalCount > 0} />
-        <StatPill label="Watching"          value={watchCount}     icon="◔" />
-        <StatPill label="Pending proposals" value={0}              icon="⁝" />
+        <StatPill label="Active theses" value={theses.length} icon="◎" />
+        <StatPill label="Signals triggered" value={signalCount} icon="↗" accent={signalCount > 0} />
+        <StatPill label="Watching" value={watchCount} icon="◔" />
+        <StatPill label="Pending proposals" value={0} icon="⁝" />
       </div>
 
       {theses.length === 0 && (
