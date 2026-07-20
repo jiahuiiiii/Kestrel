@@ -105,4 +105,8 @@ export const api = {
     reject: (kind, id, reason) =>
       request(`/proposals/${kind}/${id}/reject`, { method: 'PUT', body: { rejection_reason: reason } }),
   },
+
+  stocks: {
+    getAllListedStocks: () => request(`/stock/listed`),
+  }
 }
