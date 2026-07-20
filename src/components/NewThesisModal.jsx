@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
 import { api } from '../api/client'
 import ThesisFields, { blankCatalyst, blankCondition, fieldFull } from './ThesisFields'
@@ -8,6 +8,10 @@ import { validCatalysts, validConditions } from '../lib/thesisDiff'
 
 export default function NewThesisModal({ open, onClose, onCreated }) {
   const [ticker, setTicker] = useState('')
+  const [tickers, setTickers] = useState([]);
+  const [tickersLoading, setTickersLoading] = useState(true);
+  const [tickersError, setTickersError] = useState(null);
+
   const [notes, setNotes] = useState('')
   const [quantMode, setQuantMode] = useState('ANY')
   const [catalystMode, setCatalystMode] = useState('ANY')
@@ -15,6 +19,13 @@ export default function NewThesisModal({ open, onClose, onCreated }) {
   const [catalysts, setCatalysts] = useState([blankCatalyst()])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const response = api.stocks.getAllListedStocks()
+      .then((data) => setTickers(data.stocks))
+      .catch((err) => setTickersError(err.message))
+      .finally(() => setTickersLoading(false));
+  }, []);
 
   const reset = () => {
     setTicker(''); setNotes(''); setQuantMode('ANY'); setCatalystMode('ANY')
@@ -67,8 +78,19 @@ export default function NewThesisModal({ open, onClose, onCreated }) {
         {/* ticker */}
         <label className="block">
           <span className="text-xs text-slate-500 mb-1.5 block">Ticker</span>
-          <input className={`${fieldFull} uppercase`} placeholder="NVDA" value={ticker}
-            onChange={(e) => setTicker(e.target.value)} autoFocus />
+          {tickersError ? (
+            <p className='text-xs text-red-400'>{tickersError}</p>
+          ) : (
+            <select className={`${fieldFull} uppercase`} value={ticker} onChange={(e) => setTicker(e.target.value)} disabled={tickersLoading} autoFocus>
+              {tickersLoading ? (
+                <option>Loading....</option>
+              ) : (
+                tickers.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))
+              )}
+            </select>
+          )}
         </label>
 
         <ThesisFields
