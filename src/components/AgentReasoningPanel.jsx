@@ -189,17 +189,36 @@ function ConditionRow({ result }) {
   )
 }
 
+// A catalyst's progress toward confirming — its STATE, not the classifier's
+// self-confidence. A near-full green bar next to "not confirmed" (the old
+// confidence bar) read as "almost confirmed"; this shows the actual ladder
+// unconfirmed → rumored → confirmed, so the fill means "closeness to firing".
+const CATALYST_STAGE = {
+  unconfirmed: { pct: 8, bar: 'bg-slate-500', chip: 'bg-slate-600/20 text-slate-400', label: 'unconfirmed' },
+  rumored: { pct: 55, bar: 'bg-amber-400', chip: 'bg-amber-400/15 text-amber-300', label: 'rumored' },
+  confirmed: { pct: 100, bar: 'bg-emerald-400', chip: 'bg-emerald-400/15 text-emerald-300', label: 'confirmed' },
+  invalidated: { pct: 100, bar: 'bg-rose-500', chip: 'bg-rose-500/15 text-rose-300', label: 'invalidated' },
+}
+
 function CatalystRow({ result }) {
+  const stage = CATALYST_STAGE[result.state] ?? CATALYST_STAGE.unconfirmed
   return (
     <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm text-slate-300 leading-snug">{result.description}</p>
-        <span className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium bg-slate-600/20 text-slate-500">
-          not confirmed
+        <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${stage.chip}`}>
+          {stage.label}
         </span>
       </div>
 
-      {result.confidence != null && <ConfidenceBar value={result.confidence} />}
+      <div className="space-y-1">
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all ${stage.bar}`} style={{ width: `${stage.pct}%` }} />
+        </div>
+        <div className="flex justify-between text-[9px] uppercase tracking-wider text-slate-600">
+          <span>unconfirmed</span><span>rumored</span><span>confirmed</span>
+        </div>
+      </div>
 
       {result.articleHeadline && (
         <p className="text-xs text-slate-600 italic">Nearest article: &ldquo;{result.articleHeadline}&rdquo;</p>

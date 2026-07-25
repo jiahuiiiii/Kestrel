@@ -91,6 +91,9 @@ export function catalystResultsFromThesis(t) {
     const e = newestEvidence(c)
     return {
       description: c.description || '',
+      // The full state (unconfirmed | rumored | confirmed | invalidated) drives the
+      // "how close to confirming" progress bar; `verdict` is the confirmed shortcut.
+      state: c.state || 'unconfirmed',
       verdict: c.state === 'confirmed',
       confidence: e ? e.confidence : null,
       quote: e ? e.supporting_quote : null,
