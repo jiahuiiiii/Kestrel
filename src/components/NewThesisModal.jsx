@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
 import { api } from '../api/client'
-import ThesisFields, { blankCatalyst, blankCondition, fieldFull } from './ThesisFields'
+import ThesisFields, { blankCatalyst, blankCondition } from './ThesisFields'
+import TickerCombobox from './TickerCombobox'
 // Same "what counts as a real row" rules the edit diff uses, so the two forms
 // can't disagree about which blank rows to ignore.
 import { validCatalysts, validConditions } from '../lib/thesisDiff'
@@ -21,7 +22,7 @@ export default function NewThesisModal({ open, onClose, onCreated }) {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    const response = api.stocks.getAllListedStocks()
+    api.stocks.getAllListedStocks()
       .then((data) => setTickers(data.stocks))
       .catch((err) => setTickersError(err.message))
       .finally(() => setTickersLoading(false));
@@ -78,19 +79,14 @@ export default function NewThesisModal({ open, onClose, onCreated }) {
         {/* ticker */}
         <label className="block">
           <span className="text-xs text-slate-500 mb-1.5 block">Ticker</span>
-          {tickersError ? (
-            <p className='text-xs text-red-400'>{tickersError}</p>
-          ) : (
-            <select className={`${fieldFull} uppercase`} value={ticker} onChange={(e) => setTicker(e.target.value)} disabled={tickersLoading} autoFocus>
-              {tickersLoading ? (
-                <option>Loading....</option>
-              ) : (
-                tickers.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))
-              )}
-            </select>
-          )}
+          <TickerCombobox
+            value={ticker}
+            onChange={setTicker}
+            tickers={tickers}
+            loading={tickersLoading}
+            error={tickersError}
+            autoFocus
+          />
         </label>
 
         <ThesisFields
