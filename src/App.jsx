@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { useWs } from './hooks/useWs'
 import { api } from './api/client'
 import { pendingProposalCount } from './api/adapt'
 import NavBar from './components/NavBar'
@@ -19,9 +20,8 @@ function Background() {
   )
 }
 
-// Inside AuthProvider so it can read auth + fetch the live proposal count.
 function Shell() {
-  const { user } = useAuth()
+  const { user, updateNotifications } = useAuth()
   const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
@@ -32,6 +32,28 @@ function Shell() {
       .catch(() => active && setPendingCount(0))
     return () => { active = false }
   }, [user])
+
+  useWs((event) => {
+    if (event.type === 'TELEGRAM_LINKED') {
+      updateNotifications({
+        telegram: {
+          enabled: true,
+          linked: true,
+          handle: event.payload.handle ?? '',
+        }
+      })
+    }
+
+    if (event.type === 'TELEGRAM_UNLINKED') {
+      updateNotifications({
+        telegram: {
+          enabled: false,
+          linked: false,
+          handle: '',
+        }
+      })
+    }
+  }, !!user)
 
   return (
     <>

@@ -1,21 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
 import NotificationChannels, { channelsValid } from './NotificationChannels'
 import { useAuth } from '../context/AuthContext'
 
 const DEFAULT_PREFS = {
-  email: { enabled: true, address: '' },
   telegram: { enabled: false, linked: false, handle: '' },
 }
 
 export default function NotificationSettingsModal({ open, onClose }) {
   const { user, updateNotifications } = useAuth()
   const [prefs, setPrefs] = useState(
-    () => user?.notifications ?? { ...DEFAULT_PREFS, email: { enabled: true, address: user?.email ?? '' } }
+    () => user?.notifications ?? DEFAULT_PREFS
   )
 
-  const valid = channelsValid(prefs)
-  const noChannel = !prefs.email.enabled && !prefs.telegram.enabled
+  // Sync when user.notifications changes externally (e.g. WS telegram_linked event)
+  useEffect(() => {
+    if (user?.notifications) setPrefs(user.notifications)
+  }, [user?.notifications])
+
+  const valid = prefs.telegram.enabled && prefs.telegram.linked
+  const noChannel = !prefs.telegram.enabled
 
   const save = () => {
     if (!valid) return
@@ -28,10 +32,10 @@ export default function NotificationSettingsModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       title="Notification settings"
-      subtitle="Choose how Kestrel alerts you when a thesis fires. Pick one channel or both."
+      subtitle="Choose how Kestrel alerts you when a thesis fires."
       maxWidth="max-w-lg"
     >
-      <NotificationChannels prefs={prefs} onChange={setPrefs} startCodeSeed={user?.email ?? ''} />
+      <NotificationChannels prefs={prefs} onChange={setPrefs} />
 
       {noChannel && (
         <p className="text-xs text-amber-400 px-1 mt-3">Enable at least one channel to receive alerts.</p>

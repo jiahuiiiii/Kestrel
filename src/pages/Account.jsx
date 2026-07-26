@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import GlassCard from '../components/GlassCard'
@@ -10,13 +10,11 @@ function initials(name = '', email = '') {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || 'U'
 }
 
-// Placeholder shown when signed out, so the layout is visible without an account.
 const DEMO_USER = {
   name: 'John Doe',
   email: 'john.doe@example.com',
   notifications: {
-    email: { enabled: true, address: 'john.doe@example.com' },
-    telegram: { enabled: true, linked: true, handle: 'johndoe' },
+    telegram: { enabled: false, linked: false, handle: '' },
   },
 }
 
@@ -29,6 +27,11 @@ export default function Account() {
 
   const [prefs, setPrefs] = useState(() => displayUser.notifications)
   const [saved, setSaved] = useState(false)
+
+  // Sync when user.notifications changes (e.g. after getTelegramStatus resolves on load)
+  useEffect(() => {
+    if (user?.notifications) setPrefs(user.notifications)
+  }, [user?.notifications])
 
   const dirty = JSON.stringify(prefs) !== JSON.stringify(displayUser.notifications)
   const valid = channelsValid(prefs)
@@ -47,7 +50,6 @@ export default function Account() {
         <p className="text-sm text-slate-500 mt-1">Manage your profile and how Kestrel reaches you.</p>
       </div>
 
-      {/* Preview banner (signed out) */}
       {isDemo && (
         <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 flex items-start gap-3">
           <span className="text-amber-400 text-sm mt-0.5">◔</span>
@@ -61,7 +63,6 @@ export default function Account() {
         </div>
       )}
 
-      {/* Profile */}
       <section className="space-y-3">
         <h2 className="text-xs text-slate-500 uppercase tracking-widest">Profile</h2>
         <GlassCard className="p-5 flex items-center gap-4">
@@ -75,30 +76,18 @@ export default function Account() {
         </GlassCard>
       </section>
 
-      {/* Notifications */}
       <section className="space-y-3">
         <h2 className="text-xs text-slate-500 uppercase tracking-widest">Alert channels</h2>
         <GlassCard className="p-5">
-          <NotificationChannels prefs={prefs} onChange={setPrefs} startCodeSeed={displayUser.email} />
+          <NotificationChannels prefs={prefs} onChange={setPrefs} />
 
           {!valid && (
             <p className="text-xs text-amber-400 px-1 mt-3">Enable at least one valid channel to receive alerts.</p>
           )}
-
-          <div className="flex items-center justify-end gap-3 pt-4 mt-4 border-t border-white/[0.06]">
-            {saved && <span className="text-xs text-emerald-400">Saved ✓{isDemo ? ' (preview)' : ''}</span>}
-            <button
-              onClick={save}
-              disabled={!dirty || !valid}
-              className="px-4 py-2 rounded-lg bg-emerald-400 text-slate-900 text-sm font-semibold hover:bg-emerald-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Save changes
-            </button>
-          </div>
+          
         </GlassCard>
       </section>
 
-      {/* Session */}
       <section className="space-y-3">
         <h2 className="text-xs text-slate-500 uppercase tracking-widest">Session</h2>
         {isDemo ? (

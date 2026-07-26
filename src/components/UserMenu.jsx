@@ -16,7 +16,6 @@ function initials(name = '', email = '') {
 function channelSummary(n) {
   if (!n) return 'No alerts configured'
   const on = []
-  if (n.email?.enabled) on.push('Email')
   if (n.telegram?.enabled) on.push('Telegram')
   return on.length ? `Alerts via ${on.join(' + ')}` : 'No channels enabled'
 }
@@ -81,7 +80,7 @@ export default function UserMenu() {
             <BellBoldIcon className="text-slate-500 h-5 w-5" /> Notification settings
           </button>
           <button
-            onClick={() => { signOut(); setMenuOpen(false) }}
+            onClick={() => { signOut(); setMenuOpen(false); navigate('/') }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/[0.06] transition-colors text-left"
           >
             <ExitFillIcon className="text-slate-500 h-5 w-5" /> Sign out
