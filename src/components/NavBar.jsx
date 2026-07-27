@@ -5,10 +5,11 @@ import UserMenu from './UserMenu'
 const links = [
   { to: '/', label: 'Dashboard' },
   { to: '/proposals', label: 'Proposals' },
+  { to: '/notification', label: 'Notification' },
   { to: '/account', label: 'Account' },
 ]
 
-export default function NavBar({ pendingCount = 0 }) {
+export default function NavBar({ pendingCount = 0, unreadAlerts = 0 }) {
   return (
     <header className="glass-nav sticky top-0 z-50">
       <div className="max-w-6xl mx-auto p-6 flex items-center justify-between">
@@ -40,6 +41,11 @@ export default function NavBar({ pendingCount = 0 }) {
                 {label === 'Proposals' && pendingCount > 0 && (
                   <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-amber-400 text-slate-900 rounded-full">
                     {pendingCount}
+                  </span>
+                )}
+                {label === 'Notification' && unreadAlerts > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-emerald-400 text-slate-900 rounded-full">
+                    {unreadAlerts > 99 ? '99+' : unreadAlerts}
                   </span>
                 )}
               </NavLink>

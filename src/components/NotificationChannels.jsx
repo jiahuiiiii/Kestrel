@@ -1,4 +1,7 @@
-const BOT_HANDLE = 'KestrelAlertBot'
+import { useState, useEffect } from 'react'
+import { api } from "../api/client"
+
+const BOT_HANDLE = 'KestrelFinanceBot'
 
 function Toggle({ on, onChange }) {
   return (
@@ -44,21 +47,53 @@ function ChannelCard({ icon, title, desc, enabled, onToggle, children }) {
   )
 }
 
-// Shared notification-channel editor used by both the settings modal and the
-// account page. Controlled: parent owns `prefs`, receives updates via onChange.
-export default function NotificationChannels({ prefs, onChange, startCodeSeed = '' }) {
-  const setEmail = (patch) => onChange({ ...prefs, email: { ...prefs.email, ...patch } })
+export default function NotificationChannels({ prefs, onChange }) {
+  const [linkData, setLinkData] = useState(null)
+  const [loadingLink, setLoadingLink] = useState(false)
+  const [linkError, setLinkError] = useState(null)
+
   const setTelegram = (patch) => onChange({ ...prefs, telegram: { ...prefs.telegram, ...patch } })
 
-  const startCode = 'kx-' + (startCodeSeed ? btoa(startCodeSeed).slice(0, 8).toLowerCase() : 'demo1234')
-  const openTelegram = () =>
-    window.open(`https://t.me/${BOT_HANDLE}?start=${startCode}`, '_blank', 'noopener')
+  // Fetch token once when enabled and not yet linked
+  useEffect(() => {
+    if (!prefs.telegram.enabled || prefs.telegram.linked) {
+      setLinkData(null)
+      return
+    }
 
-  const emailInvalid = prefs.email.enabled && !prefs.email.address.includes('@')
+    let cancelled = false
+    setLoadingLink(true)
+    setLinkError(null)
+
+    api.telegram.connect()
+      .then((result) => {
+        if (!cancelled) setLinkData(result)
+      })
+      .catch(() => {
+        if (!cancelled) setLinkError('Failed to generate linking code. Try again.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLink(false)
+      })
+
+    return () => { cancelled = true }
+  }, [prefs.telegram.enabled, prefs.telegram.linked])
+
+  const handleUnlink = async () => {
+    try {
+      await api.telegram.disconnect()
+    } catch { /* non-fatal — WS will update state if it succeeded */ }
+  }
+
+  const openTelegram = () => {
+    if (linkData?.unique_link) {
+      window.open(linkData.unique_link, '_blank', 'noopener')
+    }
+  }
 
   return (
     <div className="space-y-3">
-      {/* Email */}
+      {/* Email
       <ChannelCard
         icon="✉"
         title="Email"
@@ -77,7 +112,7 @@ export default function NotificationChannels({ prefs, onChange, startCodeSeed = 
           />
         </label>
         {emailInvalid && <p className="text-xs text-rose-400 mt-1.5">Enter a valid email address.</p>}
-      </ChannelCard>
+      </ChannelCard> */}
 
       {/* Telegram */}
       <ChannelCard
@@ -94,38 +129,38 @@ export default function NotificationChannels({ prefs, onChange, startCodeSeed = 
               Linked{prefs.telegram.handle ? ` as @${prefs.telegram.handle}` : ''}
             </span>
             <button
-              onClick={() => setTelegram({ linked: false, handle: '' })}
+              onClick={handleUnlink}
               className="text-xs text-slate-400 hover:text-white transition-colors"
             >
               Unlink
             </button>
           </div>
-        ) : (
+        ) : loadingLink ? (
+          <p className="text-xs text-slate-500">Generating linking code…</p>
+        ) : linkError ? (
+          <p className="text-xs text-rose-400">{linkError}</p>
+        ) : linkData ? (
           <div className="space-y-2.5">
             <p className="text-xs text-slate-500 leading-relaxed">
-              Open the bot <span className="text-slate-300">@{BOT_HANDLE}</span> and press{' '}
-              <span className="text-slate-300">Start</span>. Your linking code is{' '}
-              <code className="tabular text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">{startCode}</code>.
+              Open the bot <span className="text-slate-300">@{BOT_HANDLE}</span> and send{' '}
+              <code className="text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+                /authorize {linkData.token}
+              </code>
+              . Code expires in {Math.floor(linkData.expires_in_seconds / 60)} minutes.
             </p>
-            <div className="flex gap-2">
-              <button
-                onClick={openTelegram}
-                className="flex-1 py-2 rounded-lg bg-sky-500/15 border border-sky-400/25 text-sky-300 text-sm font-medium hover:bg-sky-500/25 transition-colors"
-              >
-                Open Telegram
-              </button>
-              <button
-                onClick={() => setTelegram({ linked: true })}
-                className="flex-1 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-slate-300 text-sm hover:bg-white/[0.08] transition-colors"
-              >
-                I've pressed Start
-              </button>
-            </div>
+            <button
+              onClick={openTelegram}
+              className="w-full py-2 rounded-lg bg-sky-500/15 border border-sky-400/25 text-sky-300 text-sm font-medium hover:bg-sky-500/25 transition-colors"
+            >
+              Open Telegram
+            </button>
+            <p className="text-xs text-slate-600">
+              Waiting for confirmation — send the command above and this will update automatically.
+            </p>
           </div>
-        )}
+        ) : null}
       </ChannelCard>
 
-      {/* in-app note */}
       <p className="text-xs text-slate-600 px-1">
         In-app alerts stream live over WebSocket whenever the dashboard is open — always on.
       </p>
@@ -134,7 +169,5 @@ export default function NotificationChannels({ prefs, onChange, startCodeSeed = 
 }
 
 export function channelsValid(prefs) {
-  const noChannel = !prefs.email.enabled && !prefs.telegram.enabled
-  const emailInvalid = prefs.email.enabled && !prefs.email.address.includes('@')
-  return !noChannel && !emailInvalid
+  return prefs.telegram.enabled && prefs.telegram.linked
 }

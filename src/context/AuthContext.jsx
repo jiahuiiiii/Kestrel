@@ -1,51 +1,60 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { api, setUnauthenticatedHandler } from '../api/client'
+import { api, setUnauthenticatedHandler, setAccessToken } from '../api/client'
 
 const AuthContext = createContext(null)
 
-// Notification prefs aren't part of the backend user profile yet, so we keep
-// them client-side (localStorage) layered on top of the real account.
-const NOTIF_KEY = 'kestrel_notifications'
-
-const defaultNotifications = (email) => ({
-  email: { enabled: true, address: email || '' },
-  telegram: { enabled: false, linked: false, handle: '' },
-})
-
-function loadNotifications() {
-  try {
-    const raw = localStorage.getItem(NOTIF_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true) // true while bootstrapping the session
+  const [loading, setLoading] = useState(true)
 
-  const applyProfile = useCallback((profile) => {
+  const applyProfile = useCallback(async (profile, token = null) => {
     if (!profile) {
       setUser(null)
       return
     }
+
+    if (token) setAccessToken(token)
+
+    let telegram = { enabled: false, linked: false, handle: '' }
+    try {
+      const status = await api.telegram.getTelegramStatus()
+      telegram = {
+        enabled: status.linked,
+        linked: status.linked,
+        handle: status.handle ?? '',
+      }
+    } catch { /* non-fatal */ }
+
     setUser({
       userId: profile.user_id,
       name: profile.username,
       email: profile.email,
-      notifications: loadNotifications() || defaultNotifications(profile.email),
+      notifications: { telegram },
     })
   }, [])
 
-  // On load, try to restore the session from the cookie (client auto-refreshes).
   useEffect(() => {
     let active = true
-    setUnauthenticatedHandler(() => active && setUser(null))
+    setUnauthenticatedHandler(() => {
+      if (active) {
+        setAccessToken(null)
+        setUser(null)
+      }
+    })
     ;(async () => {
       try {
+        // On page load we don't have the token — try refresh to get a fresh one
+        const refreshed = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+        if (refreshed.ok) {
+          const data = await refreshed.json()
+          const token = data?.result?.access_token ?? data?.access_token
+          if (token && active) setAccessToken(token)
+        }
         const me = await api.auth.me()
-        if (active) applyProfile(me)
+        if (active) await applyProfile(me)
       } catch {
         if (active) setUser(null)
       } finally {
@@ -56,23 +65,29 @@ export function AuthProvider({ children }) {
   }, [applyProfile])
 
   const signIn = useCallback(async (email, password) => {
-    await api.auth.login(email, password)
-    applyProfile(await api.auth.me())
+    const auth = await api.auth.login(email, password)
+    await applyProfile(await api.auth.me(), auth.access_token)
   }, [applyProfile])
 
   const register = useCallback(async (email, username, password) => {
-    await api.auth.register(email, username, password)
-    applyProfile(await api.auth.me())
+    const auth = await api.auth.register(email, username, password)
+    await applyProfile(await api.auth.me(), auth.access_token)
   }, [applyProfile])
 
   const signOut = useCallback(async () => {
-    try { await api.auth.logout() } catch { /* clear locally regardless */ }
+    try { await api.auth.logout() } catch { }
+    setAccessToken(null)
     setUser(null)
   }, [])
 
-  const updateNotifications = useCallback((notifications) => {
-    localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications))
-    setUser((prev) => (prev ? { ...prev, notifications } : prev))
+  const updateNotifications = useCallback((patch) => {
+    setUser((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        notifications: { ...prev.notifications, ...patch }
+      }
+    })
   }, [])
 
   return (
