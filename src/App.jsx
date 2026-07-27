@@ -10,6 +10,7 @@ import ThesisDetail from './pages/ThesisDetail'
 import Proposals from './pages/Proposals'
 import Account from './pages/Account'
 import Notification from './pages/Notification'
+import NotFound from './pages/NotFound'
 
 function Background() {
   return (
@@ -136,6 +137,7 @@ function Shell() {
           <Route path="/proposals" element={<Proposals />} />
           <Route path="/notification" element={<Notification />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/*" element={<NotFound />} />
         </Routes>
       </main>
       {toast && <AlertToast alert={toast} onDismiss={dismissToast} />}
