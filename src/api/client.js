@@ -113,5 +113,10 @@ export const api = {
     connect: () => request(`/telegram/connect`, { method: 'POST' }),
     disconnect: () => request(`/telegram/disconnect`, { method: 'DELETE' }),
     getTelegramStatus: () => request(`/telegram/status`),
+  },
+
+  notification: {
+    getAllAlerts: (page = 1, pageSize = 20) => request(`/alerts?page=${page}&page_size=${pageSize}`),
+    get: (id) => request(`/alerts/${id}`),
   }
 }

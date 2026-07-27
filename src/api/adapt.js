@@ -155,6 +155,36 @@ export function pendingProposalCount(resp) {
   return adaptProposals(resp).filter((p) => p.status === 'pending').length
 }
 
+// --- Alerts ----------------------------------------------------------------
+
+export function adaptAlert(a) {
+  const ev = a.evaluation || {}
+  return {
+    id: a.alert_id,
+    evaluationId: a.evaluation_id,
+    thesisId: a.theses_id,
+    ticker: a.ticker || '',
+    thesisNotes: a.theses_notes || '',
+    channelsSent: a.channels_sent || null,
+    alertStatus: a.alert_status || null,
+    signal: ev.signal === true || ev.signal === 'true',
+    reason: ev.reason || '',
+    evaluationStatus: ev.evaluation_status || '',
+    createdAt: ev.created_at || null,
+  }
+}
+
+export function adaptAlerts(resp) {
+  if (!resp) return { alerts: [], total: 0, page: 1, pageSize: 20, totalPages: 0 }
+  return {
+    alerts: (resp.alerts || []).map(adaptAlert),
+    total: resp.total ?? 0,
+    page: resp.page ?? 1,
+    pageSize: resp.page_size ?? 20,
+    totalPages: resp.total_pages ?? 0,
+  }
+}
+
 // A backend EvaluationResponse -> a timeline/reasoning-panel evaluation.
 // `catalystResults` is attached by the caller for the newest evaluation (that's
 // the only one whose evidence we can reconstruct from current catalyst state).
