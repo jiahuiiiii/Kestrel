@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { adaptAlerts } from '../api/adapt'
@@ -149,29 +149,18 @@ export default function Notification() {
   const [alerts, setAlerts] = useState([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!!user)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
-  // Track IDs we've already rendered so WS prepends don't duplicate
-  const seenIds = useRef(new Set())
 
   const loadPage = useCallback(async (p, append = false) => {
-    if (!user) return
+    if (!user) { setLoading(false); return }
     if (append) setLoadingMore(true)
     else { setLoading(true); setError(null) }
     try {
       const raw = await api.notification.getAllAlerts(p, PAGE_SIZE)
       const { alerts: incoming, totalPages: tp } = adaptAlerts(raw)
-      setAlerts((prev) => {
-        const next = append ? [...prev] : []
-        for (const a of incoming) {
-          if (!seenIds.current.has(a.id)) {
-            seenIds.current.add(a.id)
-            next.push(a)
-          }
-        }
-        return next
-      })
+      setAlerts((prev) => append ? [...prev, ...incoming] : incoming)
       setTotalPages(tp)
       setPage(p)
     } catch {
@@ -184,7 +173,6 @@ export default function Notification() {
 
   // Initial load + mark notifications as seen (clear unread badge)
   useEffect(() => {
-    seenIds.current.clear()
     setAlerts([])
     loadPage(1)
     localStorage.setItem('kestrel_alerts_last_seen', Date.now().toString())
