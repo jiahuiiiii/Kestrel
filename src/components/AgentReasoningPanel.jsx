@@ -20,7 +20,7 @@ function ConfidenceBar({ value, size = 'sm' }) {
 // The agent is mid-evaluation. Keeps the demo from ever showing a dead panel.
 function ThinkingState() {
   return (
-    <div className="glass p-5 space-y-4">
+    <div className="glass p-4 sm:p-5 space-y-4">
       <div className="flex items-center gap-2.5">
         <div className="flex gap-1">
           <span className="thinking-dot w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ animationDelay: '0s' }} />
@@ -63,10 +63,10 @@ export default function AgentReasoningPanel({ evaluation, thesis = null, loading
   const unconfirmed = (catalystResults ?? []).filter((r) => !r.verdict)
 
   return (
-    <div className="glass p-5 space-y-5 animate-fadeIn">
+    <div className="glass p-4 sm:p-5 space-y-5 animate-fadeIn">
       {/* header: verdict + agent summary */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0 flex-1">
           <p className="text-xs text-slate-500 uppercase tracking-widest mb-1">Agent reasoning</p>
           <p className="text-sm text-slate-300 leading-relaxed">{reason}</p>
         </div>
@@ -82,7 +82,7 @@ export default function AgentReasoningPanel({ evaluation, thesis = null, loading
       </div>
 
       {/* readiness meter — how close to firing */}
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 sm:px-4 py-3">
         <ReadinessMeter readiness={readiness} />
       </div>
 
@@ -140,9 +140,9 @@ export default function AgentReasoningPanel({ evaluation, thesis = null, loading
 // can see at a glance *why* the agent said "buy."
 function EvidenceCard({ result }) {
   return (
-    <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.05] p-4 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-slate-200 leading-snug font-medium">{result.description}</p>
+    <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.05] p-3 sm:p-4 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+        <p className="text-sm text-slate-200 leading-snug font-medium min-w-0 flex-1">{result.description}</p>
         {result.confidence != null && (
           <span className="flex-shrink-0 tabular text-xs font-semibold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full">
             {Math.round(result.confidence * 100)}% conf.
@@ -177,12 +177,12 @@ function EvidenceCard({ result }) {
 function ConditionRow({ result }) {
   const label = metricLabel(result.metric)
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-slate-400">
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="text-slate-400 min-w-0">
         <span className={result.met ? 'text-emerald-400' : 'text-rose-400'}>{result.met ? '✓' : '✗'}</span>{' '}
         {label} {result.operator} {result.value}
       </span>
-      <span className={`tabular ${result.met ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <span className={`tabular flex-shrink-0 ${result.met ? 'text-emerald-400' : 'text-rose-400'}`}>
         {result.currentValue != null ? result.currentValue.toFixed(1) : '—'}
       </span>
     </div>
@@ -205,7 +205,7 @@ function CatalystRow({ result }) {
   return (
     <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-slate-300 leading-snug">{result.description}</p>
+        <p className="text-sm text-slate-300 leading-snug min-w-0">{result.description}</p>
         <span className={`flex-shrink-0 text-xs px-1.5 py-0.5 rounded font-medium ${stage.chip}`}>
           {stage.label}
         </span>

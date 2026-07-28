@@ -4,6 +4,8 @@ import { api } from '../api/client'
 import { adaptProposals } from '../api/adapt'
 import { useAuth } from '../context/AuthContext'
 import GlassCard from '../components/GlassCard'
+import SignedOut from '../components/SignedOut'
+import { ProposalCardSkeleton, Skeleton } from '../components/Skeleton'
 import { metricLabel } from '../constants/metrics'
 
 const TYPE_LABELS = {
@@ -65,7 +67,7 @@ function ChangeSummary({ type, change }) {
     case 'remove_condition':
       if (!change.currentMetric) return null
       return (
-        <div className={`${box} flex items-center gap-3`}>
+        <div className={`${box} flex items-center gap-3 flex-wrap`}>
           <Chip tone="rose">{condition(change.currentMetric, change.currentOperator, change.currentValue)}</Chip>
           {change.liveValue != null && (
             <span className="text-xs text-slate-600 ml-auto">live: {change.liveValue}</span>
@@ -105,9 +107,9 @@ function ProposalCard({ proposal, justResolved, onApprove, onReject, busy }) {
   const isPending = status === 'pending'
 
   return (
-    <GlassCard className={`p-5 space-y-4 ${isPending ? '' : 'opacity-60'} ${justResolved ? 'animate-applied' : ''}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+    <GlassCard className={`p-4 sm:p-5 space-y-4 ${isPending ? '' : 'opacity-60'} ${justResolved ? 'animate-applied' : ''}`}>
+      <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 min-w-0">
           <button
             onClick={() => proposal.thesisId && navigate(`/thesis/${proposal.thesisId}`)}
             disabled={!proposal.thesisId}
@@ -154,7 +156,7 @@ function ProposalCard({ proposal, justResolved, onApprove, onReject, busy }) {
         <p className="text-xs text-slate-600 italic">{proposal.rejectionReason}</p>
       )}
 
-      <div className="flex items-center justify-between pt-1 border-t border-white/[0.05]">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/[0.05]">
         <span className="text-xs text-slate-600">{ts}</span>
         {isPending ? (
           <div className="flex gap-2">
@@ -244,7 +246,7 @@ export default function Proposals() {
   const resolved = proposals.filter((p) => p.status !== 'pending')
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white tracking-tight">Proposals</h1>
         <p className="text-sm text-slate-500 mt-1">
@@ -253,11 +255,18 @@ export default function Proposals() {
       </div>
 
       {authLoading || loading ? (
-        <p className="text-center text-slate-500 py-10">Loading…</p>
+        <section className="space-y-3">
+          <Skeleton className="h-2.5 w-24" />
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => <ProposalCardSkeleton key={i} />)}
+          </div>
+        </section>
       ) : !user ? (
-        <GlassCard className="px-6 py-10 text-center">
-          <p className="text-slate-400 text-sm">Sign in to review proposals.</p>
-        </GlassCard>
+        <SignedOut
+          icon="⁝"
+          title="Sign in to review proposals"
+          body="Use the account menu (top right) to sign in or create an account. Changes the agent suggests for your theses appear here."
+        />
       ) : error ? (
         <GlassCard className="px-6 py-10 text-center">
           <p className="text-rose-400 text-sm">{error}</p>

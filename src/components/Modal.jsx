@@ -28,12 +28,12 @@ export default function Modal({ open, onClose, title, subtitle, children, maxWid
       />
 
       {/* centering track: centers when it fits, top-aligns + scrolls when tall */}
-      <div className="relative flex min-h-full items-center justify-center p-4">
+      <div className="relative flex min-h-full items-center justify-center p-3 sm:p-4">
         {/* panel */}
-        <div className={`glass-strong relative w-full ${maxWidth} p-6 shadow-2xl animate-[fadeIn_0.15s_ease-out]`}>
+        <div className={`glass-strong relative w-full ${maxWidth} p-4 sm:p-6 shadow-2xl animate-[fadeIn_0.15s_ease-out]`}>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close"
           >
             ✕

@@ -4,16 +4,18 @@ import { adaptThesis } from '../api/adapt'
 import { useAuth } from '../context/AuthContext'
 import ThesisCard from '../components/ThesisCard'
 import NewThesisModal from '../components/NewThesisModal'
+import SignedOut from '../components/SignedOut'
+import { StatPillSkeleton, ThesisCardSkeleton, Skeleton } from '../components/Skeleton'
 
 function StatPill({ label, value, icon, accent = false }) {
   return (
-    <div className={`glass px-4 py-3.5 flex items-center gap-3.5 ${accent ? 'ring-1 ring-emerald-400/25 bg-emerald-400/[0.04]' : ''
+    <div className={`glass px-3 py-3 sm:px-4 sm:py-3.5 flex items-center gap-2.5 sm:gap-3.5 ${accent ? 'ring-1 ring-emerald-400/25 bg-emerald-400/[0.04]' : ''
       }`}>
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-base ${accent ? 'bg-emerald-400/15 text-emerald-400' : 'bg-white/[0.05] text-slate-400'
+      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-sm sm:text-base ${accent ? 'bg-emerald-400/15 text-emerald-400' : 'bg-white/[0.05] text-slate-400'
         }`}>
         {icon}
       </div>
-      <div className="flex flex-col gap-0.5 min-w-0">
+      <div className="flex flex-col gap-1 min-w-0">
         <span className={`tabular text-2xl font-bold leading-none ${accent ? 'text-emerald-400' : 'text-white'}`}>{value}</span>
         <span className="text-xs text-slate-500 truncate">{label}</span>
       </div>
@@ -73,24 +75,45 @@ export default function Dashboard() {
 
   // --- gate states ---
   if (authLoading || loading) {
-    return <div className="max-w-6xl mx-auto px-6 py-16 text-center text-slate-500">Loading…</div>
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <div className="space-y-2 min-w-0">
+            <h1 className="text-2xl font-semibold text-white tracking-tight">Watchlist</h1>
+            <Skeleton className="h-3 w-40 sm:w-56" />
+          </div>
+          <Skeleton className="h-9 w-28 sm:w-32 rounded-lg flex-shrink-0" />
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+          {Array.from({ length: 4 }).map((_, i) => <StatPillSkeleton key={i} />)}
+        </div>
+
+        <section className="space-y-3">
+          <Skeleton className="h-2.5 w-20" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {Array.from({ length: 3 }).map((_, i) => <ThesisCardSkeleton key={i} />)}
+          </div>
+        </section>
+      </div>
+    )
   }
 
   if (!user) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-24 text-center space-y-3">
-        <div className="w-12 h-12 mx-auto rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-xl text-slate-500">◎</div>
-        <p className="text-slate-300 font-medium">Sign in to see your watchlist</p>
-        <p className="text-sm text-slate-500 max-w-sm mx-auto">
-          Use the account menu (top right) to sign in or create an account. Your theses and their live signals appear here.
-        </p>
+      <div className="max-w-6xl mx-auto">
+        <SignedOut
+          icon="◎"
+          title="Sign in to see your watchlist"
+          body="Use the account menu (top right) to sign in or create an account. Your theses and their live signals appear here."
+        />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-6 py-24 text-center space-y-2">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center space-y-2">
         <p className="text-rose-400 font-medium">Couldn’t load your watchlist</p>
         <p className="text-sm text-slate-500">{error}</p>
       </div>
@@ -98,11 +121,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       <NewThesisModal open={showNew} onClose={() => setShowNew(false)} onCreated={loadTheses} />
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      {/* Stays one row even on phones: "Watchlist" is short, so stacking just
+          turned the button into a full-bleed slab louder than the page title. */}
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold text-white tracking-tight">Watchlist</h1>
           <p className="text-sm text-slate-500 mt-1">
             Monitoring {theses.length} thes{theses.length === 1 ? 'is' : 'es'}
@@ -117,13 +142,13 @@ export default function Dashboard() {
         </div>
         <button
           onClick={() => setShowNew(true)}
-          className="flex-shrink-0 text-sm px-4 py-2 rounded-lg bg-emerald-400 text-slate-900 font-semibold hover:bg-emerald-300 transition-colors"
+          className="flex-shrink-0 text-sm px-3.5 sm:px-4 py-2 rounded-lg bg-emerald-400 text-slate-900 font-semibold hover:bg-emerald-300 transition-colors"
         >
           + New thesis
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
         <StatPill label="Active theses" value={theses.length} icon="◎" />
         <StatPill label="Signals triggered" value={signalCount} icon="↗" accent={signalCount > 0} />
         <StatPill label="Watching" value={watchCount} icon="◔" />
@@ -131,7 +156,7 @@ export default function Dashboard() {
       </div>
 
       {theses.length === 0 && (
-        <div className="glass px-6 py-16 text-center space-y-3">
+        <div className="glass px-4 sm:px-6 py-12 sm:py-16 text-center space-y-3">
           <div className="w-12 h-12 mx-auto rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-xl text-slate-500">◎</div>
           <p className="text-slate-300 font-medium">No theses on your watchlist yet</p>
           <p className="text-sm text-slate-500 max-w-sm mx-auto">
@@ -150,7 +175,7 @@ export default function Dashboard() {
       {signalCount > 0 && (
         <section className="space-y-3">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Signals</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {sorted.filter((t) => t.signal).map((t) => (
               <ThesisCard key={t.id} thesis={t} />
             ))}
@@ -161,7 +186,7 @@ export default function Dashboard() {
       {watchCount > 0 && (
         <section className="space-y-3">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Watching</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {sorted.filter((t) => !t.signal).map((t) => (
               <ThesisCard key={t.id} thesis={t} />
             ))}

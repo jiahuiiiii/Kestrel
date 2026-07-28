@@ -61,6 +61,16 @@ body {
   border-radius: 99px;
 }
 
+/* Scroll a row without a visible bar — used by the mobile nav rail, where a
+   5px track under four tab targets reads as chrome rather than affordance. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Mono numbers */
 .tabular {
   font-family: 'JetBrains Mono', monospace;

@@ -16,13 +16,13 @@ export default function ThesisCard({ thesis }) {
 
   return (
     <GlassCard
-      className={`p-5 space-y-4 ${signal ? 'ring-1 ring-emerald-400/25' : ''}`}
+      className={`p-4 sm:p-5 space-y-4 ${signal ? 'ring-1 ring-emerald-400/25' : ''}`}
       onClick={() => navigate(`/thesis/${id}`)}
     >
       {/* header row */}
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-0.5">
             <span className="text-xl font-bold text-white tracking-tight">{ticker}</span>
             <StatusIndicator status={status} variant="badge" />
           </div>

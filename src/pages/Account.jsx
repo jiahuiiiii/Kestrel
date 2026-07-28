@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import GlassCard from '../components/GlassCard'
 import NotificationChannels, { channelsValid } from '../components/NotificationChannels'
+import SignedOut from '../components/SignedOut'
+import { Skeleton } from '../components/Skeleton'
+
+const EMPTY_PREFS = { telegram: { enabled: false, linked: false, handle: '' } }
 
 function initials(name = '', email = '') {
   const src = name.trim() || email
@@ -10,75 +14,92 @@ function initials(name = '', email = '') {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || 'U'
 }
 
-const DEMO_USER = {
-  name: 'John Doe',
-  email: 'john.doe@example.com',
-  notifications: {
-    telegram: { enabled: false, linked: false, handle: '' },
-  },
-}
-
 export default function Account() {
-  const { user, signOut, updateNotifications } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
 
-  const isDemo = !user
-  const displayUser = user ?? DEMO_USER
-
-  const [prefs, setPrefs] = useState(() => displayUser.notifications)
-  const [saved, setSaved] = useState(false)
+  // Hooks run before the auth gates below, so they can't be conditional — seed
+  // from EMPTY_PREFS and let the effect fill in once the profile resolves.
+  const [prefs, setPrefs] = useState(() => user?.notifications ?? EMPTY_PREFS)
 
   // Sync when user.notifications changes (e.g. after getTelegramStatus resolves on load)
   useEffect(() => {
-    if (user?.notifications) setPrefs(user.notifications)
+    setPrefs(user?.notifications ?? EMPTY_PREFS)
   }, [user?.notifications])
 
-  const dirty = JSON.stringify(prefs) !== JSON.stringify(displayUser.notifications)
   const valid = channelsValid(prefs)
 
-  const save = () => {
-    if (!valid) return
-    if (!isDemo) updateNotifications(prefs)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  if (authLoading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <div>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Account</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage your profile and how Kestrel reaches you.</p>
+        </div>
+
+        <section className="space-y-3">
+          <h2 className="text-xs text-slate-500 uppercase tracking-widest">Profile</h2>
+          <GlassCard className="p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+            <Skeleton className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0" />
+            <div className="space-y-2 flex-1 min-w-0">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+          </GlassCard>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xs text-slate-500 uppercase tracking-widest">Alert channels</h2>
+          <GlassCard className="p-4 sm:p-5">
+            <Skeleton className="h-20 w-full rounded-xl" />
+          </GlassCard>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-xs text-slate-500 uppercase tracking-widest">Session</h2>
+          <GlassCard className="p-4 sm:p-5">
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </GlassCard>
+        </section>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <SignedOut
+          icon="◔"
+          title="Sign in to manage your account"
+          body="Use the account menu (top right) to sign in or create an account. Your profile and alert channels appear here."
+        />
+      </div>
+    )
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white tracking-tight">Account</h1>
         <p className="text-sm text-slate-500 mt-1">Manage your profile and how Kestrel reaches you.</p>
       </div>
 
-      {isDemo && (
-        <div className="rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-3 flex items-start gap-3">
-          <span className="text-amber-400 text-sm mt-0.5">◔</span>
-          <div className="text-sm">
-            <span className="text-amber-300 font-medium">Preview — demo data.</span>{' '}
-            <span className="text-amber-200/70">
-              You&apos;re signed out, so this shows a sample account. Sign in from the top-right to
-              manage your own profile and alert channels.
-            </span>
-          </div>
-        </div>
-      )}
-
       <section className="space-y-3">
         <h2 className="text-xs text-slate-500 uppercase tracking-widest">Profile</h2>
-        <GlassCard className="p-5 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 text-lg font-bold flex items-center justify-center flex-shrink-0">
-            {initials(displayUser.name, displayUser.email)}
+        <GlassCard className="p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 text-base sm:text-lg font-bold flex items-center justify-center flex-shrink-0">
+            {initials(user.name, user.email)}
           </div>
           <div className="min-w-0">
-            <p className="text-base font-medium text-white capitalize truncate">{displayUser.name}</p>
-            <p className="text-sm text-slate-500 truncate">{displayUser.email}</p>
+            <p className="text-base font-medium text-white capitalize truncate">{user.name}</p>
+            <p className="text-sm text-slate-500 truncate">{user.email}</p>
           </div>
         </GlassCard>
       </section>
 
       <section className="space-y-3">
         <h2 className="text-xs text-slate-500 uppercase tracking-widest">Alert channels</h2>
-        <GlassCard className="p-5">
+        <GlassCard className="p-4 sm:p-5">
           <NotificationChannels prefs={prefs} onChange={setPrefs} />
 
           {!valid && (
@@ -90,33 +111,18 @@ export default function Account() {
 
       <section className="space-y-3">
         <h2 className="text-xs text-slate-500 uppercase tracking-widest">Session</h2>
-        {isDemo ? (
-          <GlassCard className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white">Not signed in</p>
-              <p className="text-xs text-slate-500 mt-0.5">Sign in to save changes to a real account.</p>
-            </div>
-            <button
-              onClick={() => navigate('/')}
-              className="px-4 py-2 rounded-lg bg-emerald-400 text-slate-900 text-sm font-semibold hover:bg-emerald-300 transition-colors"
-            >
-              Go to dashboard
-            </button>
-          </GlassCard>
-        ) : (
-          <GlassCard className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white">Sign out of Kestrel</p>
-              <p className="text-xs text-slate-500 mt-0.5">You&apos;ll need to sign in again to manage theses.</p>
-            </div>
-            <button
-              onClick={() => { signOut(); navigate('/') }}
-              className="px-4 py-2 rounded-lg border border-rose-400/25 text-rose-300 text-sm hover:bg-rose-400/10 transition-colors"
-            >
-              Sign out
-            </button>
-          </GlassCard>
-        )}
+        <GlassCard className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-white">Sign out of Kestrel</p>
+            <p className="text-xs text-slate-500 mt-0.5">You&apos;ll need to sign in again to manage theses.</p>
+          </div>
+          <button
+            onClick={() => { signOut(); navigate('/') }}
+            className="w-full sm:w-auto flex-shrink-0 px-4 py-2 rounded-lg border border-rose-400/25 text-rose-300 text-sm hover:bg-rose-400/10 transition-colors"
+          >
+            Sign out
+          </button>
+        </GlassCard>
       </section>
     </div>
   )

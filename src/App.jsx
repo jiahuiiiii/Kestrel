@@ -31,7 +31,7 @@ function AlertToast({ alert, onDismiss }) {
   }, [onDismiss])
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] max-w-sm w-full animate-in slide-in-from-bottom-2 fade-in duration-300">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:bottom-6 sm:right-6 sm:w-full sm:max-w-sm z-[100] animate-in slide-in-from-bottom-2 fade-in duration-300">
       <div className="glass-strong rounded-xl p-4 border border-emerald-400/20 shadow-2xl shadow-black/50">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-emerald-400/15 flex items-center justify-center flex-shrink-0 text-sm">
@@ -130,7 +130,7 @@ function Shell() {
     <>
       <Background />
       <NavBar pendingCount={pendingCount} unreadAlerts={unreadAlerts} />
-      <main className="min-h-screen pb-16">
+      <main className="min-h-screen pb-12 sm:pb-16">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/thesis/:id" element={<ThesisDetail />} />

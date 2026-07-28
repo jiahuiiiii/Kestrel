@@ -44,7 +44,7 @@ export const catalystRows = (thesis) =>
 
 export function Segmented({ value, options, onChange }) {
   return (
-    <div className="inline-flex gap-0.5 rounded-lg bg-white/[0.03] p-0.5 border border-white/[0.06]">
+    <div className="inline-flex flex-wrap gap-0.5 rounded-lg bg-white/[0.03] p-0.5 border border-white/[0.06] max-w-full">
       {options.map((o) => (
         <button
           key={o.value}
@@ -63,7 +63,7 @@ export function Segmented({ value, options, onChange }) {
 
 function SectionHeader({ title, children }) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <span className="text-xs text-slate-500">{title}</span>
       {children}
     </div>
@@ -95,16 +95,20 @@ export default function ThesisFields({
         </SectionHeader>
 
         {conditions.map((c) => (
-          <div key={c.key} className="flex gap-1.5 items-center">
-            <select className={`${field} flex-1 min-w-0`} value={c.metric}
+          // Below `sm` the metric select claims its own line — sharing one row
+          // with the operator, value and remove button left it ~80px wide, too
+          // narrow to read "price to book" in. `sm:flex-1` restores the single
+          // row: flex-basis:0 wins over the width, so the two never conflict.
+          <div key={c.key} className="flex flex-wrap gap-1.5 items-center">
+            <select className={`${field} w-full sm:flex-1 min-w-0`} value={c.metric}
               onChange={(e) => setCond(c.key, 'metric', e.target.value)}>
               {METRICS.map((m) => <option key={m} value={m} className="bg-slate-800">{m.replace(/_/g, ' ')}</option>)}
             </select>
-            <select className={`${field} w-[4.5rem] flex-shrink-0`} value={c.operator}
+            <select className={`${field} flex-1 sm:flex-none sm:w-[4.5rem]`} value={c.operator}
               onChange={(e) => setCond(c.key, 'operator', e.target.value)}>
               {OPERATORS.map((o) => <option key={o} value={o} className="bg-slate-800">{o}</option>)}
             </select>
-            <input className={`${field} w-24 flex-shrink-0`} type="number" step="any" placeholder="value"
+            <input className={`${field} flex-1 sm:flex-none sm:w-24 min-w-0`} type="number" step="any" placeholder="value"
               value={c.value} onChange={(e) => setCond(c.key, 'value', e.target.value)} />
             <button type="button" onClick={() => rmCond(c.key)}
               className="w-8 h-8 flex-shrink-0 rounded-lg text-slate-500 hover:text-rose-400" aria-label="Remove condition">✕</button>

@@ -8,6 +8,7 @@ import ConditionBadge from '../components/ConditionBadge'
 import AgentReasoningPanel from '../components/AgentReasoningPanel'
 import EvaluationTimeline from '../components/EvaluationTimeline'
 import EditThesisModal from '../components/EditThesisModal'
+import { Skeleton, TimelineSkeleton, ReasoningPanelSkeleton } from '../components/Skeleton'
 
 export default function ThesisDetail() {
   const { id } = useParams()
@@ -69,12 +70,59 @@ export default function ThesisDetail() {
   }, [load])
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto px-6 py-16 text-center text-slate-500">Loading…</div>
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
+          >
+            ← Back
+          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Skeleton className="h-7 w-24 rounded-lg" />
+            <Skeleton className="h-7 w-28 rounded-lg" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+          {['Quant conditions', 'Catalysts'].map((heading) => (
+            <section key={heading} className="space-y-3">
+              <h2 className="text-xs text-slate-500 uppercase tracking-widest">{heading}</h2>
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <section className="space-y-3">
+          <h2 className="text-xs text-slate-500 uppercase tracking-widest">Evaluation history</h2>
+          <div className="grid lg:grid-cols-[minmax(0,17rem)_1fr] gap-4 sm:gap-6 items-start">
+            <div className="space-y-2">
+              <Skeleton className="h-2.5 w-20" />
+              <TimelineSkeleton />
+            </div>
+            <ReasoningPanelSkeleton />
+          </div>
+        </section>
+      </div>
+    )
   }
 
   if (error || !thesis) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-8 text-center space-y-2">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 text-center space-y-2">
         <p className="text-slate-400">{error || 'Thesis not found.'}</p>
         <button onClick={() => navigate(-1)} className="text-sm text-emerald-400 hover:text-emerald-300">← Back</button>
       </div>
@@ -85,8 +133,8 @@ export default function ThesisDetail() {
   const activeEval = evaluations[activeEvalIdx]
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate(-1)}
           className="text-sm text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
@@ -95,7 +143,7 @@ export default function ThesisDetail() {
         </button>
 
         {confirmDelete ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-slate-400">Remove this thesis?</span>
             <button
               onClick={handleDelete}
@@ -113,7 +161,7 @@ export default function ThesisDetail() {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setEditing(true)}
               className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-colors"
@@ -132,10 +180,10 @@ export default function ThesisDetail() {
 
       <EditThesisModal open={editing} onClose={() => setEditing(false)} thesis={thesis} onSaved={load} />
 
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-bold text-white tracking-tight">{ticker}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{ticker}</h1>
             <StatusIndicator status={status} variant="badge" />
           </div>
           <p className="text-slate-400">{name}</p>
@@ -143,7 +191,7 @@ export default function ThesisDetail() {
         </div>
 
         {signal && (
-          <div className="flex-shrink-0 glass px-4 py-3 text-center">
+          <div className="flex-shrink-0 self-start glass px-4 py-3 text-center">
             <p className="text-emerald-400 text-lg font-bold">↗ Signal</p>
             <p className="text-xs text-emerald-400/60 mt-0.5">All conditions met</p>
           </div>
@@ -157,7 +205,7 @@ export default function ThesisDetail() {
         </GlassCard>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-6">
+      <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
         <section className="space-y-3">
           <h2 className="text-xs text-slate-500 uppercase tracking-widest">Quant conditions</h2>
           <div className="space-y-2">
@@ -200,7 +248,7 @@ export default function ThesisDetail() {
             No evaluations yet — the agent hasn’t swept this thesis. Run a sweep to populate this.
           </GlassCard>
         ) : (
-          <div className="grid lg:grid-cols-[minmax(0,17rem)_1fr] gap-6 items-start">
+          <div className="grid lg:grid-cols-[minmax(0,17rem)_1fr] gap-4 sm:gap-6 items-start">
             <div className="space-y-2">
               <p className="text-[11px] text-slate-600 uppercase tracking-widest">
                 {evaluations.length} sweep{evaluations.length === 1 ? '' : 's'}

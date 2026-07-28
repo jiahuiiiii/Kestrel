@@ -25,7 +25,7 @@ function Toggle({ on, onChange }) {
 
 function ChannelCard({ icon, title, desc, enabled, onToggle, children }) {
   return (
-    <div className={`rounded-xl border p-4 transition-colors ${
+    <div className={`rounded-xl border p-3 sm:p-4 transition-colors ${
       enabled ? 'border-emerald-400/25 bg-emerald-400/[0.04]' : 'border-white/[0.07] bg-white/[0.02]'
     }`}>
       <div className="flex items-start gap-3">
@@ -36,13 +36,15 @@ function ChannelCard({ icon, title, desc, enabled, onToggle, children }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-white">{title}</span>
+            <span className="text-sm font-medium text-white min-w-0 truncate">{title}</span>
             <Toggle on={enabled} onChange={onToggle} />
           </div>
           <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
         </div>
       </div>
-      {enabled && children && <div className="mt-4 pl-12">{children}</div>}
+      {/* The 3rem indent aligns children under the title on desktop; on a phone
+          it just steals width from the linking code, so drop it below `sm`. */}
+      {enabled && children && <div className="mt-4 pl-0 sm:pl-12">{children}</div>}
     </div>
   )
 }
@@ -123,14 +125,14 @@ export default function NotificationChannels({ prefs, onChange }) {
         onToggle={(v) => setTelegram({ enabled: v })}
       >
         {prefs.telegram.linked ? (
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-emerald-400/[0.06] border border-emerald-400/20 px-3 py-2.5">
-            <span className="text-sm text-emerald-300 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Linked{prefs.telegram.handle ? ` as @${prefs.telegram.handle}` : ''}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg bg-emerald-400/[0.06] border border-emerald-400/20 px-3 py-2.5">
+            <span className="text-sm text-emerald-300 flex items-center gap-2 min-w-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+              <span className="truncate">Linked{prefs.telegram.handle ? ` as @${prefs.telegram.handle}` : ''}</span>
             </span>
             <button
               onClick={handleUnlink}
-              className="text-xs text-slate-400 hover:text-white transition-colors"
+              className="text-xs text-slate-400 hover:text-white transition-colors flex-shrink-0"
             >
               Unlink
             </button>
@@ -143,7 +145,7 @@ export default function NotificationChannels({ prefs, onChange }) {
           <div className="space-y-2.5">
             <p className="text-xs text-slate-500 leading-relaxed">
               Open the bot <span className="text-slate-300">@{BOT_HANDLE}</span> and send{' '}
-              <code className="text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+              <code className="text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded break-all">
                 /authorize {linkData.token}
               </code>
               . Code expires in {Math.floor(linkData.expires_in_seconds / 60)} minutes.

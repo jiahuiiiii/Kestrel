@@ -4,7 +4,8 @@ import { api } from '../api/client'
 import { adaptAlerts } from '../api/adapt'
 import { useAuth } from '../context/AuthContext'
 import GlassCard from '../components/GlassCard'
-import { Skeleton, SkeletonText } from '../components/Skeleton'
+import SignedOut from '../components/SignedOut'
+import { AlertCardSkeleton, Skeleton } from '../components/Skeleton'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -53,22 +54,6 @@ function channelLabel(ch) {
 
 // ── sub-components ─────────────────────────────────────────────────────────
 
-function AlertCardSkeleton() {
-  return (
-    <GlassCard className="p-4 space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2 flex-1">
-          <Skeleton className="h-3 w-16 rounded" />
-          <SkeletonText width="w-2/3" />
-        </div>
-        <Skeleton className="h-5 w-20 rounded-full" />
-      </div>
-      <SkeletonText width="w-full" />
-      <SkeletonText width="w-4/5" />
-    </GlassCard>
-  )
-}
-
 function SignalBadge({ signal }) {
   return signal ? (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-400/15 text-emerald-300 border border-emerald-400/20">
@@ -86,10 +71,10 @@ function AlertCard({ alert }) {
   const ch = channelLabel(alert.channelsSent)
 
   return (
-    <GlassCard className="p-4 space-y-3">
+    <GlassCard className="p-4 sm:p-5 space-y-4">
       {/* header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
           <Link
             to={`/thesis/${alert.thesisId}`}
             className="text-base font-bold text-white hover:text-emerald-300 transition-colors flex-shrink-0"
@@ -97,7 +82,7 @@ function AlertCard({ alert }) {
             {alert.ticker || '—'}
           </Link>
           {alert.thesisNotes && (
-            <span className="text-xs text-slate-500 truncate max-w-[260px]" title={alert.thesisNotes}>
+            <span className="text-xs text-slate-500 truncate sm:max-w-[260px]" title={alert.thesisNotes}>
               {alert.thesisNotes}
             </span>
           )}
@@ -112,8 +97,8 @@ function AlertCard({ alert }) {
         <p className="text-sm text-slate-300 leading-relaxed">{alert.reason}</p>
       )}
 
-      {/* footer row */}
-      <div className="flex items-center justify-between gap-3 pt-0.5">
+      {/* footer row — same hairline-separated meta strip as ProposalCard */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1 border-t border-white/[0.05]">
         <span className="text-xs text-slate-600">{formatRelative(alert.createdAt)}</span>
         {ch && (
           <span className="text-xs text-slate-500 flex items-center gap-1">
@@ -128,15 +113,12 @@ function AlertCard({ alert }) {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-12 h-12 rounded-full bg-white/[0.04] border border-white/[0.07] flex items-center justify-center mb-4 text-xl">
-        🔔
-      </div>
-      <p className="text-sm font-medium text-white mb-1">No alerts yet</p>
-      <p className="text-xs text-slate-500 max-w-[220px]">
+    <GlassCard className="px-6 py-10 text-center">
+      <p className="text-slate-500 text-sm">No alerts yet.</p>
+      <p className="text-slate-600 text-xs mt-1">
         Alerts appear here when a thesis meets its conditions and fires a signal.
       </p>
-    </div>
+    </GlassCard>
   )
 }
 
@@ -145,11 +127,14 @@ function EmptyState() {
 const PAGE_SIZE = 20
 
 export default function Notification() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [alerts, setAlerts] = useState([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(!!user)
+  // Starts true, not `!!user`: on a hard refresh `user` is still null while the
+  // token refresh is in flight, and seeding false let the empty state flash
+  // between auth resolving and the first page landing.
+  const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
 
@@ -178,22 +163,10 @@ export default function Notification() {
     localStorage.setItem('kestrel_alerts_last_seen', Date.now().toString())
   }, [loadPage])
 
-  if (!user) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-24 text-center space-y-3">
-        <div className="w-12 h-12 mx-auto rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-xl text-slate-500">🔔</div>
-        <p className="text-slate-300 font-medium">Sign in to see your notifications</p>
-        <p className="text-sm text-slate-500 max-w-sm mx-auto">
-          Use the account menu (top right) to sign in or create an account. Alerts from your theses appear here.
-        </p>
-      </div>
-    )
-  }
-
   const groups = groupByDate(alerts)
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-white tracking-tight">Notifications</h1>
         <p className="text-sm text-slate-500 mt-1">
@@ -201,13 +174,22 @@ export default function Notification() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => <AlertCardSkeleton key={i} />)}
-        </div>
+      {authLoading || loading ? (
+        <section className="space-y-3">
+          <Skeleton className="h-2.5 w-24" />
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => <AlertCardSkeleton key={i} />)}
+          </div>
+        </section>
+      ) : !user ? (
+        <SignedOut
+          icon="🔔"
+          title="Sign in to see your notifications"
+          body="Use the account menu (top right) to sign in or create an account. Alerts from your theses appear here."
+        />
       ) : error ? (
-        <GlassCard className="p-6 text-center">
-          <p className="text-sm text-rose-400 mb-3">{error}</p>
+        <GlassCard className="px-6 py-10 text-center">
+          <p className="text-rose-400 text-sm mb-3">{error}</p>
           <button
             onClick={() => loadPage(1)}
             className="text-xs text-slate-400 hover:text-white transition-colors underline underline-offset-2"
@@ -218,13 +200,13 @@ export default function Notification() {
       ) : alerts.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="space-y-6">
+        <>
           {groups.map(({ label, items }) => (
-            <section key={label}>
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 px-1">
-                {label}
+            <section key={label} className="space-y-3">
+              <h2 className="text-xs text-slate-500 uppercase tracking-widest">
+                {label} ({items.length})
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {items.map((a) => <AlertCard key={a.id} alert={a} />)}
               </div>
             </section>
@@ -241,7 +223,7 @@ export default function Notification() {
               </button>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   )

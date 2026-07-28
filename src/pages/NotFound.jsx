@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function NotFound() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-24 text-center space-y-3">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center space-y-3">
       <div className="w-12 h-12 mx-auto rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center text-xl text-slate-500">
         ◎
       </div>

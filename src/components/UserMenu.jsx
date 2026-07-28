@@ -52,7 +52,7 @@ export default function UserMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setMenuOpen((o) => !o)}
-        className="w-12 h-12 rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 text-lg font-bold flex items-center justify-center hover:bg-emerald-400/25 transition-colors"
+        className="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-emerald-400/15 border border-emerald-400/30 text-emerald-300 text-sm sm:text-lg font-bold flex items-center justify-center hover:bg-emerald-400/25 transition-colors"
         aria-label="Account menu"
       >
         {initials(user.name, user.email)}
