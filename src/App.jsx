@@ -89,10 +89,14 @@ function Shell() {
   useEffect(() => {
     if (!user) { setPendingCount(0); return }
     let active = true
-    api.proposals.all()
-      .then((data) => active && setPendingCount(pendingProposalCount(data)))
-      .catch(() => active && setPendingCount(0))
-    return () => { active = false }
+    const fetchCount = () => {
+      api.proposals.all()
+        .then((data) => active && setPendingCount(pendingProposalCount(data)))
+        .catch(() => active && setPendingCount(0))
+    }
+    fetchCount()
+    const timer = setInterval(fetchCount, 30_000)
+    return () => { active = false; clearInterval(timer) }
   }, [user])
 
   useWs((event) => {
