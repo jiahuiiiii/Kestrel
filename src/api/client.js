@@ -2,11 +2,44 @@ const ROOT = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 const BASE = `${ROOT}/api/v1`
 
 export class ApiError extends Error {
-  constructor(status, message, body) {
+  constructor(status, message, body, code = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.body = body
+    this.code = code // backend error_code, e.g. INVALID_CREDENTIALS_ERROR
+  }
+}
+
+// Last resort only — used when a response carries no parseable body at all.
+// Without these a failure surfaced to the user as the literal "401 Unauthorized".
+const STATUS_FALLBACK = {
+  400: 'That request wasn’t valid.',
+  401: 'Your session has expired. Please sign in again.',
+  403: 'You don’t have access to that.',
+  404: 'We couldn’t find that.',
+  409: 'That conflicts with something that already exists.',
+  422: 'Some of those details weren’t valid.',
+  429: 'Too many requests — please wait a moment and try again.',
+  500: 'Something went wrong on our end. Please try again.',
+  503: 'The service is temporarily unavailable. Please try again.',
+}
+
+// Every backend error is shaped {result: {errors: [{error_code, error_message}]}}
+// by app/exception_handler.py. We previously looked for `error.message` and
+// `detail`, neither of which it has ever sent, so the real message — which is
+// already user-facing copy like "Invalid email or password" — was thrown away
+// on every single failure.
+function readError(parsed, res) {
+  const first = parsed?.result?.errors?.[0]
+  return {
+    code: first?.error_code ?? null,
+    message:
+      first?.error_message ||
+      parsed?.error?.message ||
+      parsed?.detail ||
+      STATUS_FALLBACK[res.status] ||
+      'Something went wrong. Please try again.',
   }
 }
 
@@ -51,9 +84,9 @@ async function request(path, opts = {}, retry = true) {
 
   if (!res.ok) {
     let parsed = null
-    try { parsed = await res.json() } catch { }
-    const message = parsed?.error?.message || parsed?.detail || `${res.status} ${res.statusText}`
-    throw new ApiError(res.status, message, parsed)
+    try { parsed = await res.json() } catch { /* empty or non-JSON body */ }
+    const { message, code } = readError(parsed, res)
+    throw new ApiError(res.status, message, parsed, code)
   }
 
   if (res.status === 204) return null

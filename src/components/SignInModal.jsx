@@ -2,6 +2,30 @@ import { useState } from 'react'
 import Modal from './Modal'
 import { useAuth } from '../context/AuthContext'
 
+// The backend answers "no such account" and "wrong password" with the same
+// error on purpose (see the /auth/login docstring) so the form can't be used to
+// discover which emails are registered. Keep that as one message here — telling
+// the user which half was wrong would undo it.
+function authErrorMessage(err, mode) {
+  if (err?.code === 'INVALID_CREDENTIALS_ERROR' || err?.status === 401) {
+    return 'Incorrect email or password.'
+  }
+  if (err?.code === 'EMAIL_ALREADY_EXISTS') {
+    return 'An account with this email already exists — try signing in instead.'
+  }
+  if (err?.status === 422) {
+    return err.message || 'Check the details you entered and try again.'
+  }
+  // No status at all means fetch itself threw — the server is unreachable,
+  // which otherwise surfaced as the browser's "Failed to fetch".
+  if (err?.status == null) {
+    return 'Can’t reach the server. Check your connection and try again.'
+  }
+  return err.message || (mode === 'signup'
+    ? 'Couldn’t create your account. Please try again.'
+    : 'Couldn’t sign you in. Please try again.')
+}
+
 function Field({ label, ...props }) {
   return (
     <label className="block">
@@ -40,8 +64,7 @@ export default function SignInModal({ open, onClose }) {
       setForm({ name: '', email: '', password: '' })
       onClose()
     } catch (err) {
-      // Backend returns a generic message for bad credentials / existing email.
-      setError(err?.message || 'Something went wrong. Please try again.')
+      setError(authErrorMessage(err, mode))
     } finally {
       setBusy(false)
     }
