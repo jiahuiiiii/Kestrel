@@ -64,7 +64,7 @@ export default function NavBar({ pendingCount = 0, unreadAlerts = 0 }) {
           ))}
         </nav>
 
-        <div className="order-2 lg:order-3 ml-auto lg:ml-0 flex-shrink-0">
+        <div className="order-2 lg:order-3 ml-auto lg:ml-0 flex-shrink-0 relative z-20">
           <UserMenu />
         </div>
       </div>

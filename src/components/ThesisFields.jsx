@@ -20,11 +20,17 @@ export const OPERATORS = ['<', '<=', '>', '>=', '==']
 
 // Base field styling WITHOUT a width — callers set width explicitly, so we never
 // mix `w-full` with `flex-1`/`w-*` (Tailwind resolves such conflicts by CSS
-// order, which silently collapsed the metric select before).
-export const field =
-  'px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white ' +
+// order, which silently collapsed the metric select before). Padding is split
+// out for the same reason: a second `px-*` on a caller can't be relied on to
+// beat this one, so narrow fields opt into `fieldTight` instead of overriding.
+const fieldBase =
+  'py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm text-white ' +
   'placeholder:text-slate-600 focus:outline-none focus:border-emerald-400/40 focus:bg-white/[0.06] transition-colors'
+export const field = `${fieldBase} px-3`
 export const fieldFull = `${field} w-full`
+// For fields too narrow to spend 24px on padding — currently the operator
+// select, which on a phone is ~64px wide and still owes a chevron ~18px of it.
+const fieldTight = `${fieldBase} px-2`
 
 let nextKey = 0
 const newKey = () => `row-${nextKey++}`
@@ -95,23 +101,24 @@ export default function ThesisFields({
         </SectionHeader>
 
         {conditions.map((c) => (
-          // Below `sm` the metric select claims its own line — sharing one row
-          // with the operator, value and remove button left it ~80px wide, too
-          // narrow to read "price to book" in. `sm:flex-1` restores the single
-          // row: flex-basis:0 wins over the width, so the two never conflict.
-          <div key={c.key} className="flex flex-wrap gap-1.5 items-center">
-            <select className={`${field} w-full sm:flex-1 min-w-0`} value={c.metric}
+          // One row at every width. The modal is max-w-lg, so a 360px phone
+          // leaves ~322px here — enough only if the two fixed elements stay
+          // small and the rest is split by ratio rather than by fixed width.
+          // Metric takes twice the value input: it holds "price to book", the
+          // value holds two or three digits.
+          <div key={c.key} className="flex flex-nowrap gap-1.5 items-center">
+            <select className={`${field} flex-[2] sm:flex-1 min-w-0`} value={c.metric}
               onChange={(e) => setCond(c.key, 'metric', e.target.value)}>
               {METRICS.map((m) => <option key={m} value={m} className="bg-slate-800">{m.replace(/_/g, ' ')}</option>)}
             </select>
-            <select className={`${field} flex-1 sm:flex-none sm:w-[4.5rem]`} value={c.operator}
+            <select className={`${fieldTight} w-16 sm:w-[4.5rem] flex-none`} value={c.operator}
               onChange={(e) => setCond(c.key, 'operator', e.target.value)}>
               {OPERATORS.map((o) => <option key={o} value={o} className="bg-slate-800">{o}</option>)}
             </select>
             <input className={`${field} flex-1 sm:flex-none sm:w-24 min-w-0`} type="number" step="any" placeholder="value"
               value={c.value} onChange={(e) => setCond(c.key, 'value', e.target.value)} />
             <button type="button" onClick={() => rmCond(c.key)}
-              className="w-8 h-8 flex-shrink-0 rounded-lg text-slate-500 hover:text-rose-400" aria-label="Remove condition">✕</button>
+              className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 transition-colors" aria-label="Remove condition">✕</button>
           </div>
         ))}
         <button type="button" onClick={addCond} className="text-xs text-emerald-400 hover:text-emerald-300">+ Add condition</button>
@@ -134,7 +141,7 @@ export default function ThesisFields({
             <input className={`${field} flex-1 min-w-0`} placeholder="e.g. NVIDIA announces a new data-center GPU"
               value={c.description} onChange={(e) => setCat(c.key, e.target.value)} />
             <button type="button" onClick={() => rmCat(c.key)}
-              className="w-8 h-8 flex-shrink-0 rounded-lg text-slate-500 hover:text-rose-400" aria-label="Remove catalyst">✕</button>
+              className="w-9 h-9 flex-shrink-0 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 transition-colors" aria-label="Remove catalyst">✕</button>
           </div>
         ))}
         <button type="button" onClick={addCat} className="text-xs text-emerald-400 hover:text-emerald-300">+ Add catalyst</button>
