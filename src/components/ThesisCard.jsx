@@ -26,8 +26,8 @@ export default function ThesisCard({ thesis }) {
             <span className="text-xl font-bold text-white tracking-tight">{ticker}</span>
             <StatusIndicator status={status} variant="badge" />
           </div>
-          <p className="text-sm text-slate-500">{name}</p>
-          <p className="text-xs text-slate-600 mt-0.5">{sector}</p>
+          {/* <p className="text-sm text-slate-500">{name}</p> */}
+          {/* <p className="text-xs text-slate-600 mt-0.5">{sector}</p> */}
         </div>
 
         {signal && (
@@ -49,11 +49,10 @@ export default function ThesisCard({ thesis }) {
       {/* catalysts */}
       <div className="space-y-1.5">
         {catalysts.map(c => (
-          <div key={c.id} className={`flex items-start gap-2 text-xs rounded-lg px-3 py-2 border ${
-            c.triggered
-              ? 'bg-emerald-400/5 border-emerald-400/15 text-emerald-300'
-              : 'bg-white/[0.02] border-white/[0.05] text-slate-500'
-          }`}>
+          <div key={c.id} className={`flex items-start gap-2 text-xs rounded-lg px-3 py-2 border ${c.triggered
+            ? 'bg-emerald-400/5 border-emerald-400/15 text-emerald-300'
+            : 'bg-white/[0.02] border-white/[0.05] text-slate-500'
+            }`}>
             <span className="mt-0.5 flex-shrink-0">{c.triggered ? '✓' : '○'}</span>
             <span className="leading-snug">{c.description}</span>
           </div>
