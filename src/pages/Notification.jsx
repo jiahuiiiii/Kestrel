@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import { adaptAlerts } from '../api/adapt'
 import { useAuth } from '../context/AuthContext'
+import AlertConditionBadge from '../components/AlertConditionBadge'
 import GlassCard from '../components/GlassCard'
 import SignedOut from '../components/SignedOut'
 import { AlertCardSkeleton, Skeleton } from '../components/Skeleton'
@@ -81,20 +82,48 @@ function AlertCard({ alert }) {
           >
             {alert.ticker || '—'}
           </Link>
-          {alert.thesisNotes && (
-            <span className="text-xs text-slate-500 truncate sm:max-w-[260px]" title={alert.thesisNotes}>
-              {alert.thesisNotes}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <SignalBadge signal={alert.signal} />
         </div>
       </div>
 
+      <div>
+        {alert.thesisNotes && (
+          <span className="text-sm text-slate-300 truncate sm:max-w-[260px]" title={alert.thesisNotes}>
+            {alert.thesisNotes}
+          </span>
+        )}
+      </div>
+
       {/* reason */}
       {alert.reason && (
         <p className="text-sm text-slate-300 leading-relaxed">{alert.reason}</p>
+      )}
+
+      {/* the same evidence the Telegram message carries: conditions that
+          passed, catalysts that confirmed */}
+      {alert.quantMet.length > 0 && (
+        <div className="space-y-1.5">
+          <h3 className="text-xs text-slate-500 uppercase tracking-widest">Quant</h3>
+          {alert.quantMet.map((q, i) => (
+            <AlertConditionBadge key={q.quant_condition_id || i} condition={q} />
+          ))}
+        </div>
+      )}
+
+      {alert.catalystsConfirmed.length > 0 && (
+        <div className="space-y-1.5">
+          <h3 className="text-xs text-slate-500 uppercase tracking-widest">Catalysts confirmed</h3>
+          <ul className="space-y-1">
+            {alert.catalystsConfirmed.map((d, i) => (
+              <li key={i} className="flex gap-2 text-sm text-slate-300 leading-relaxed">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                <span className="min-w-0">{d}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* footer row — same hairline-separated meta strip as ProposalCard */}

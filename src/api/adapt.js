@@ -110,7 +110,7 @@ export function catalystResultsFromThesis(t) {
 // proposal_type is ADD/REMOVE/UPDATE; we map it to the UI's type vocabulary.
 
 const PROPOSAL_TYPE = {
-  quant:    { UPDATE: 'adjust_threshold', ADD: 'add_condition', REMOVE: 'remove_condition' },
+  quant: { UPDATE: 'adjust_threshold', ADD: 'add_condition', REMOVE: 'remove_condition' },
   catalyst: { ADD: 'add_catalyst', REMOVE: 'remove_catalyst', UPDATE: 'update_catalyst' },
 }
 
@@ -159,6 +159,14 @@ export function pendingProposalCount(resp) {
 
 export function adaptAlert(a) {
   const ev = a.evaluation || {}
+  const results = ev.results || {}
+  // const quantMet = (results.quant_detail || []).filter(q => q && q.passes)
+  // const catalystsConfirmed = (results.catalyst_detail || [])
+  //   .filter(c => c && c.state === 'confirmed')
+  //   .map(c => c.description || '')
+  // console.log(quantMet)
+  // console.log(catalystsConfirmed)
+
   return {
     id: a.alert_id,
     evaluationId: a.evaluation_id,
@@ -170,6 +178,10 @@ export function adaptAlert(a) {
     signal: ev.signal === true || ev.signal === 'true',
     reason: ev.reason || '',
     evaluationStatus: ev.evaluation_status || '',
+    quantMet: (results.quant_detail || []).filter(q => q.passes),
+    catalystsConfirmed: (results.catalyst_detail || [])
+      .filter(c => c.state === 'confirmed')
+      .map(c => c.description),
     createdAt: ev.created_at || null,
   }
 }
