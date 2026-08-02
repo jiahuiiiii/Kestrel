@@ -1,56 +1,63 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
-import { api } from '../api/client'
-import { adaptAlerts } from '../api/adapt'
-import { useAuth } from '../context/AuthContext'
-import AlertConditionBadge from '../components/AlertConditionBadge'
-import GlassCard from '../components/GlassCard'
-import SignedOut from '../components/SignedOut'
-import { AlertCardSkeleton, Skeleton } from '../components/Skeleton'
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api/client";
+import { adaptAlerts } from "../api/adapt";
+import { useAuth } from "../context/AuthContext";
+import AlertConditionBadge from "../components/AlertConditionBadge";
+import GlassCard from "../components/GlassCard";
+import SignedOut from "../components/SignedOut";
+import { AlertCardSkeleton, Skeleton } from "../components/Skeleton";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
 function formatRelative(iso) {
-  if (!iso) return '—'
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function formatDateGroup(iso) {
-  if (!iso) return 'Unknown'
-  const d = new Date(iso)
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  if (d.toDateString() === today.toDateString()) return 'Today'
-  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
-  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+  if (!iso) return "Unknown";
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 function groupByDate(alerts) {
-  const groups = []
-  const seen = new Map()
+  const groups = [];
+  const seen = new Map();
   for (const a of alerts) {
-    const label = formatDateGroup(a.createdAt)
+    const label = formatDateGroup(a.createdAt);
     if (!seen.has(label)) {
-      seen.set(label, groups.length)
-      groups.push({ label, items: [] })
+      seen.set(label, groups.length);
+      groups.push({ label, items: [] });
     }
-    groups[seen.get(label)].items.push(a)
+    groups[seen.get(label)].items.push(a);
   }
-  return groups
+  return groups;
 }
 
 function channelLabel(ch) {
-  if (!ch) return null
-  return ch.charAt(0) + ch.slice(1).toLowerCase()
+  if (!ch) return null;
+  return ch.charAt(0) + ch.slice(1).toLowerCase();
 }
 
 // ── sub-components ─────────────────────────────────────────────────────────
@@ -65,35 +72,39 @@ function SignalBadge({ signal }) {
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/[0.04] text-slate-400 border border-white/[0.07]">
       No signal
     </span>
-  )
+  );
 }
 
 function AlertCard({ alert }) {
-  const ch = channelLabel(alert.channelsSent)
+  const ch = channelLabel(alert.channelsSent);
 
   return (
-    <GlassCard className="p-4 sm:p-5 space-y-4">
+    <GlassCard className="p-4 sm:p-5 space-y-2 sm:space-y-3">
       {/* header row */}
-      <div className="flex items-start justify-between gap-2 sm:gap-3">
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          <Link
-            to={`/thesis/${alert.thesisId}`}
-            className="text-base font-bold text-white hover:text-emerald-300 transition-colors flex-shrink-0"
-          >
-            {alert.ticker || '—'}
-          </Link>
+      <div className="flex flex-col">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <Link
+              to={`/thesis/${alert.thesisId}`}
+              className="text-base font-bold text-white hover:text-emerald-300 transition-colors flex-shrink-0"
+            >
+              {alert.ticker || "—"}
+            </Link>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <SignalBadge signal={alert.signal} />
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <SignalBadge signal={alert.signal} />
+        <div>
+          {alert.thesisNotes && (
+            <span
+              className="text-xs text-slate-500 sm:max-w-[260px]"
+              title={alert.thesisNotes}
+            >
+              {alert.thesisNotes}
+            </span>
+          )}
         </div>
-      </div>
-
-      <div>
-        {alert.thesisNotes && (
-          <span className="text-sm text-slate-300 truncate sm:max-w-[260px]" title={alert.thesisNotes}>
-            {alert.thesisNotes}
-          </span>
-        )}
       </div>
 
       {/* reason */}
@@ -105,19 +116,29 @@ function AlertCard({ alert }) {
           passed, catalysts that confirmed */}
       {alert.quantMet.length > 0 && (
         <div className="space-y-1.5">
-          <h3 className="text-xs text-slate-500 uppercase tracking-widest">Quant</h3>
+          <h3 className="text-xs text-slate-500 uppercase tracking-widest">
+            Quant
+          </h3>
           {alert.quantMet.map((q, i) => (
-            <AlertConditionBadge key={q.quant_condition_id || i} condition={q} />
+            <AlertConditionBadge
+              key={q.quant_condition_id || i}
+              condition={q}
+            />
           ))}
         </div>
       )}
 
       {alert.catalystsConfirmed.length > 0 && (
         <div className="space-y-1.5">
-          <h3 className="text-xs text-slate-500 uppercase tracking-widest">Catalysts confirmed</h3>
+          <h3 className="text-xs text-slate-500 uppercase tracking-widest">
+            Catalysts confirmed
+          </h3>
           <ul className="space-y-1">
             {alert.catalystsConfirmed.map((d, i) => (
-              <li key={i} className="flex gap-2 text-sm text-slate-300 leading-relaxed">
+              <li
+                key={i}
+                className="flex gap-2 text-sm text-slate-300 leading-relaxed"
+              >
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                 <span className="min-w-0">{d}</span>
               </li>
@@ -128,7 +149,9 @@ function AlertCard({ alert }) {
 
       {/* footer row — same hairline-separated meta strip as ProposalCard */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1 border-t border-white/[0.05]">
-        <span className="text-xs text-slate-600">{formatRelative(alert.createdAt)}</span>
+        <span className="text-xs text-slate-600">
+          {formatRelative(alert.createdAt)}
+        </span>
         {ch && (
           <span className="text-xs text-slate-500 flex items-center gap-1">
             <span className="w-1 h-1 rounded-full bg-slate-600" />
@@ -137,7 +160,7 @@ function AlertCard({ alert }) {
         )}
       </div>
     </GlassCard>
-  )
+  );
 }
 
 function EmptyState() {
@@ -145,59 +168,71 @@ function EmptyState() {
     <GlassCard className="px-6 py-10 text-center">
       <p className="text-slate-500 text-sm">No alerts yet.</p>
       <p className="text-slate-600 text-xs mt-1">
-        Alerts appear here when a thesis meets its conditions and fires a signal.
+        Alerts appear here when a thesis meets its conditions and fires a
+        signal.
       </p>
     </GlassCard>
-  )
+  );
 }
 
 // ── page ───────────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 20;
 
 export default function Notification() {
-  const { user, loading: authLoading } = useAuth()
-  const [alerts, setAlerts] = useState([])
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const { user, loading: authLoading } = useAuth();
+  const [alerts, setAlerts] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   // Starts true, not `!!user`: on a hard refresh `user` is still null while the
   // token refresh is in flight, and seeding false let the empty state flash
   // between auth resolving and the first page landing.
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
 
-  const loadPage = useCallback(async (p, append = false) => {
-    if (!user) { setLoading(false); return }
-    if (append) setLoadingMore(true)
-    else { setLoading(true); setError(null) }
-    try {
-      const raw = await api.notification.getAllAlerts(p, PAGE_SIZE)
-      const { alerts: incoming, totalPages: tp } = adaptAlerts(raw)
-      setAlerts((prev) => append ? [...prev, ...incoming] : incoming)
-      setTotalPages(tp)
-      setPage(p)
-    } catch {
-      setError('Failed to load alerts. Try again.')
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }, [user])
+  const loadPage = useCallback(
+    async (p, append = false) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      if (append) setLoadingMore(true);
+      else {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const raw = await api.notification.getAllAlerts(p, PAGE_SIZE);
+        const { alerts: incoming, totalPages: tp } = adaptAlerts(raw);
+        setAlerts((prev) => (append ? [...prev, ...incoming] : incoming));
+        setTotalPages(tp);
+        setPage(p);
+      } catch {
+        setError("Failed to load alerts. Try again.");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [user],
+  );
 
   // Initial load + mark notifications as seen (clear unread badge)
   useEffect(() => {
-    setAlerts([])
-    loadPage(1)
-    localStorage.setItem('kestrel_alerts_last_seen', Date.now().toString())
-  }, [loadPage])
+    setAlerts([]);
+    loadPage(1);
+    localStorage.setItem("kestrel_alerts_last_seen", Date.now().toString());
+  }, [loadPage]);
 
-  const groups = groupByDate(alerts)
+  const groups = groupByDate(alerts);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Notifications</h1>
+        <h1 className="text-2xl font-semibold text-white tracking-tight">
+          Notifications
+        </h1>
         <p className="text-sm text-slate-500 mt-1">
           Alerts fired when a thesis met its conditions.
         </p>
@@ -207,7 +242,9 @@ export default function Notification() {
         <section className="space-y-3">
           <Skeleton className="h-2.5 w-24" />
           <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => <AlertCardSkeleton key={i} />)}
+            {Array.from({ length: 3 }).map((_, i) => (
+              <AlertCardSkeleton key={i} />
+            ))}
           </div>
         </section>
       ) : !user ? (
@@ -236,7 +273,9 @@ export default function Notification() {
                 {label} ({items.length})
               </h2>
               <div className="space-y-4">
-                {items.map((a) => <AlertCard key={a.id} alert={a} />)}
+                {items.map((a) => (
+                  <AlertCard key={a.id} alert={a} />
+                ))}
               </div>
             </section>
           ))}
@@ -248,12 +287,12 @@ export default function Notification() {
                 disabled={loadingMore}
                 className="px-5 py-2 rounded-lg border border-white/10 text-sm text-slate-300 hover:bg-white/[0.05] transition-colors disabled:opacity-40"
               >
-                {loadingMore ? 'Loading…' : 'Load more'}
+                {loadingMore ? "Loading…" : "Load more"}
               </button>
             </div>
           )}
         </>
       )}
     </div>
-  )
+  );
 }
