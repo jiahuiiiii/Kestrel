@@ -19,10 +19,18 @@ function evidenceList(catalyst) {
   return e ? [e] : []
 }
 
-function newestEvidence(catalyst) {
+// The verdict that put the catalyst in the state it's in — newest entry whose
+// proposed_state matches the current state. Not simply the newest entry: the
+// trail records every verdict, including later `no_change` ones from unrelated
+// articles, so the newest would credit the wrong story as the source of a
+// confirmation. Falls back to newest when nothing matches (legacy rows, or a
+// state set outside the classifier). Mirrors ml_adapter.state_evidence.
+function stateEvidence(catalyst) {
   const list = evidenceList(catalyst)
   if (!list.length) return null
-  return [...list].sort((a, b) =>
+  const matching = list.filter((e) => e?.proposed_state === catalyst.state)
+  const pool = matching.length ? matching : list
+  return [...pool].sort((a, b) =>
     String(b?.classified_at || '').localeCompare(String(a?.classified_at || '')),
   )[0]
 }
@@ -70,7 +78,7 @@ export function adaptThesis(t) {
       }
     }),
     catalysts: activeRows(t.catalysts).map((c) => {
-      const e = newestEvidence(c)
+      const e = stateEvidence(c)
       const triggered = c.state === 'confirmed'
       return {
         id: c.catalyst_id,
@@ -78,6 +86,8 @@ export function adaptThesis(t) {
         state: c.state,
         triggered,
         triggeredAt: triggered && e ? e.classified_at : null,
+        sourceArticleUrl: e?.article_url || null,
+        sourceArticleHeadline: e?.article_headline || null,
       }
     }),
     evaluations: [], // filled on the detail page via adaptEvaluations
@@ -88,7 +98,9 @@ export function adaptThesis(t) {
 // reasoning panel shows real confidence + verbatim quotes for the current state.
 export function catalystResultsFromThesis(t) {
   return activeRows(t.catalysts).map((c) => {
-    const e = newestEvidence(c)
+    // The state-setting verdict, so quote / confidence / source all describe
+    // the same article — the one that actually moved the catalyst.
+    const e = stateEvidence(c)
     return {
       description: c.description || '',
       // The full state (unconfirmed | rumored | confirmed | invalidated) drives the
@@ -99,7 +111,8 @@ export function catalystResultsFromThesis(t) {
       quote: e ? e.supporting_quote : null,
       reasoning: e ? e.reasoning : null,
       sourceKind: e ? e.source_kind : null,
-      articleHeadline: null, // backend evidence stores article_id, not the headline
+      articleHeadline: e?.article_headline || null,
+      articleUrl: e?.article_url || null,
     }
   })
 }
@@ -179,9 +192,15 @@ export function adaptAlert(a) {
     reason: ev.reason || '',
     evaluationStatus: ev.evaluation_status || '',
     quantMet: (results.quant_detail || []).filter(q => q.passes),
+    // Objects, not bare strings: each confirmation carries the article that
+    // established it, so the alert can link its source.
     catalystsConfirmed: (results.catalyst_detail || [])
       .filter(c => c.state === 'confirmed')
-      .map(c => c.description),
+      .map(c => ({
+        description: c.description || '',
+        sourceArticleUrl: c.source_article_url || null,
+        sourceArticleHeadline: c.source_article_headline || null,
+      })),
     createdAt: ev.created_at || null,
   }
 }

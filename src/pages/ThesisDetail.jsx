@@ -232,6 +232,18 @@ export default function ThesisDetail() {
                     Confirmed {new Date(c.triggeredAt).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
                   </p>
                 )}
+                {c.sourceArticleUrl && (
+                  <p className="text-xs mt-1 pl-5">
+                    <a
+                      href={c.sourceArticleUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-slate-500 hover:text-slate-300 underline decoration-white/15"
+                    >
+                      {c.sourceArticleHeadline || 'Source article'} ↗
+                    </a>
+                  </p>
+                )}
               </div>
             ))}
           </div>

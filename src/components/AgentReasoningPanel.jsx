@@ -150,12 +150,23 @@ function EvidenceCard({ result }) {
         )}
       </div>
 
-      {result.articleHeadline && (
+      {(result.articleHeadline || result.articleUrl) && (
         <div className="flex items-start gap-2">
           <span className="flex-shrink-0 mt-0.5 text-[10px] uppercase tracking-widest text-slate-500 border border-white/10 rounded px-1.5 py-0.5">
             Source
           </span>
-          <p className="text-sm text-slate-300 leading-snug">{result.articleHeadline}</p>
+          {result.articleUrl ? (
+            <a
+              href={result.articleUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-emerald-300 hover:text-emerald-200 underline decoration-emerald-400/30 hover:decoration-emerald-300 leading-snug"
+            >
+              {result.articleHeadline || 'View article'} ↗
+            </a>
+          ) : (
+            <p className="text-sm text-slate-300 leading-snug">{result.articleHeadline}</p>
+          )}
         </div>
       )}
 
@@ -221,7 +232,21 @@ function CatalystRow({ result }) {
       </div>
 
       {result.articleHeadline && (
-        <p className="text-xs text-slate-600 italic">Nearest article: &ldquo;{result.articleHeadline}&rdquo;</p>
+        <p className="text-xs text-slate-600 italic">
+          Nearest article:{' '}
+          {result.articleUrl ? (
+            <a
+              href={result.articleUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="not-italic text-slate-400 hover:text-slate-200 underline decoration-white/15"
+            >
+              &ldquo;{result.articleHeadline}&rdquo; ↗
+            </a>
+          ) : (
+            <>&ldquo;{result.articleHeadline}&rdquo;</>
+          )}
+        </p>
       )}
     </div>
   )

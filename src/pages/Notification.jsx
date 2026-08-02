@@ -134,13 +134,25 @@ function AlertCard({ alert }) {
             Catalysts confirmed
           </h3>
           <ul className="space-y-1">
-            {alert.catalystsConfirmed.map((d, i) => (
+            {alert.catalystsConfirmed.map((c, i) => (
               <li
                 key={i}
                 className="flex gap-2 text-sm text-slate-300 leading-relaxed"
               >
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                <span className="min-w-0">{d}</span>
+                <span className="min-w-0">
+                  {c.description}
+                  {c.sourceArticleUrl && (
+                    <a
+                      href={c.sourceArticleUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-xs text-slate-500 hover:text-slate-300 underline decoration-white/15"
+                    >
+                      {c.sourceArticleHeadline || 'Source article'} ↗
+                    </a>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
