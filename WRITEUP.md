@@ -59,9 +59,9 @@ The cheap-model result is one run on 18 cases; next is repeated runs (≥3 seeds
 ## Appendix A — Evaluation harness
 
 - **Unit tests:** 55 pipeline-logic tests (`tests/unit/`) covering every guard transition; runnable without DB/network via `pytest --noconftest`.
-- **Tier A:** state machine vs. boolean over 16 sequences — state machine 1.0 precision / 0 false positives; boolean 0.6 / 6 false positives (three signed-then-blocked mergers, a discontinued drug program, a speculative-confirm-then-denied acquisition, an unconfirmed foundry customer). `python -m eval.run_eval`.
-- **Tier B:** guarded confirmation pass vs. single call, 18-case adversarial set; both 1.0 precision/recall. Frontier: 0.0 hallucination both. `gpt-5.4-mini`: baseline 0.167 (1/6 confirmations cite an absent quote), guarded 0.0 by construction. `python -m eval.run_eval --classify [--model gpt-5.4-mini]`. Smoke test.
-- **Tier C (end-to-end two-pass economics):** on a 20-article/3-catalyst stream, Pass-1 recall 1.0, filter rate 0.88, precision ~0.86; two-pass 7 Pass-2 calls / $0.048 vs. naive 60 / $0.366 (~87% cost, ~86% tokens saved). `python -m eval.run_eval --stream`.
+* **Tier A:** state machine vs. boolean over 16 sequences — state machine 1.0 precision / 0 false positives; boolean 0.6 / 6 false positives (three signed-then-blocked mergers, a discontinued drug program, a speculative-confirm-then-denied acquisition, an unconfirmed foundry customer). **No API key required.** `python -m eval.run_eval`.
+* **Tier B:** guarded confirmation pass vs. single call, 18-case adversarial set; both 1.0 precision/recall. Frontier: 0.0 hallucination both. `gpt-5.4-mini`: baseline 0.167 (1/6 confirmations cite an absent quote), guarded 0.0 by construction. **Requires an LLM API key.** `OPENAI_API_KEY=... python -m eval.run_eval --classify [--model gpt-5.4-mini]`. Smoke test.
+* **Tier C (end-to-end two-pass economics):** on a 20-article/3-catalyst stream, Pass-1 recall 1.0, filter rate 0.88, precision ~0.86; two-pass 7 Pass-2 calls / $0.048 vs. naive 60 / $0.366 (~87% cost, ~86% tokens saved). **Requires an LLM API key.** `OPENAI_API_KEY=... python -m eval.run_eval --stream`.
 - **Fixtures:** pre-declared outcomes (AAPL → firing, MSFT `forward_pe < 3` → not_met + proposal).
 
 ## Appendix B — Two-pass economics (Tier C) and remaining ablation
