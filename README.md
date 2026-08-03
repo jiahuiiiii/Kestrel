@@ -8,7 +8,7 @@ and Kestrel watches it for you, in plain language, with receipts.
 > The API, database, orchestrator, and ML pipeline live in
 > **➜ [github.com/brandontan2003/kestrel_backend](https://github.com/brandontan2003/kestrel_backend)**
 
-> **[Writeup for the Launchpad Challenge](https://github.com/brandontan2003/kestrel_backend/blob/main/WRITEUP.md)**
+> **[Writeup for the Launchpad Challenge](https://github.com/jiahuiiiii/Kestrel/blob/main/WRITEUP.md)**
 
 ---
 
