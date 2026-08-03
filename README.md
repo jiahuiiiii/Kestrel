@@ -8,6 +8,8 @@ and Kestrel watches it for you, in plain language, with receipts.
 > The API, database, orchestrator, and ML pipeline live in
 > **➜ [github.com/brandontan2003/kestrel_backend](https://github.com/brandontan2003/kestrel_backend)**
 
+> **[Writeup for the Launchpad Challenge](https://github.com/brandontan2003/kestrel_backend/blob/main/WRITEUP.md)**
+
 ---
 
 ## Why we built this
@@ -212,7 +214,6 @@ docker compose exec kestrel-backend-service python -m app.scripts.run_scheduler_
 | `MSFT`  | `forward_pe < 3`                                                 | **not_met** — and a great proposals demo: a threshold reality can't meet is exactly what the reviewer looks for |
 | `GOOGL` | `forward_pe < 40` **AND** `price_to_book < 2`                    | **not_met** (one fails)                                                                                         |
 | `NVDA`  | `forward_pe < 1000` + _"NVIDIA announces a new data-center GPU"_ | full LLM pipeline — check the evidence trail                                                                    |
-| `ZZQQ`  | anything                                                         | **incomplete** (invalid ticker → no data)                                                                       |
 
 > Catalyst theses classify live news through the LLM each sweep (~a few cents, 1–2 min).
 > Quant-only theses are fast and cheap.
